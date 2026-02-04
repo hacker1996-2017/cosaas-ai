@@ -4,6 +4,7 @@ export { AgentsSidebar } from './AgentsSidebar';
 export { AgentCard } from './AgentCard';
 export { AutonomyControl } from './AutonomyControl';
 export { CommandCenter } from './CommandCenter';
+export { DashboardHeader } from './DashboardHeader';
 export { DecisionCenter } from './DecisionCenter';
 export { BusinessContext } from './BusinessContext';
 export { EventTimeline } from './EventTimeline';
