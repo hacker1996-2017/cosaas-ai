@@ -7,48 +7,55 @@ import { InternalCRM } from './InternalCRM';
 import { DocumentsPanel } from './DocumentsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 import { IntegrationsPanel } from './IntegrationsPanel';
+import { DashboardHeader } from './DashboardHeader';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function ExecutiveDashboard() {
   return (
-    <div className="flex h-screen w-full bg-background">
-      {/* Left Sidebar - AI Agents */}
-      <aside className="w-72 shrink-0 border-r border-border">
-        <AgentsSidebar />
-      </aside>
+    <div className="flex flex-col h-screen w-full bg-background">
+      {/* Top Header */}
+      <DashboardHeader />
 
-      {/* Center - Command Center */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <CommandCenter className="flex-1 panel m-2 mr-1" />
-      </main>
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar - AI Agents */}
+        <aside className="w-72 shrink-0 border-r border-border">
+          <AgentsSidebar />
+        </aside>
 
-      {/* Right Sidebar - Business Panels */}
-      <aside className="w-96 shrink-0 border-l border-border">
-        <ScrollArea className="h-screen">
-          <div className="p-2 space-y-2">
-            {/* Business Context */}
-            <BusinessContext />
+        {/* Center - Command Center */}
+        <main className="flex-1 flex flex-col min-w-0">
+          <CommandCenter className="flex-1 panel m-2 mr-1" />
+        </main>
 
-            {/* Decision Center */}
-            <DecisionCenter />
+        {/* Right Sidebar - Business Panels */}
+        <aside className="w-96 shrink-0 border-l border-border">
+          <ScrollArea className="h-full">
+            <div className="p-2 space-y-2">
+              {/* Business Context */}
+              <BusinessContext />
 
-            {/* Event Timeline */}
-            <EventTimeline />
+              {/* Decision Center */}
+              <DecisionCenter />
 
-            {/* Internal CRM */}
-            <InternalCRM />
+              {/* Event Timeline */}
+              <EventTimeline />
 
-            {/* Documents */}
-            <DocumentsPanel />
+              {/* Internal CRM */}
+              <InternalCRM />
 
-            {/* Workflows */}
-            <WorkflowsPanel />
+              {/* Documents */}
+              <DocumentsPanel />
 
-            {/* Integrations */}
-            <IntegrationsPanel />
-          </div>
-        </ScrollArea>
-      </aside>
+              {/* Workflows */}
+              <WorkflowsPanel />
+
+              {/* Integrations */}
+              <IntegrationsPanel />
+            </div>
+          </ScrollArea>
+        </aside>
+      </div>
     </div>
   );
 }

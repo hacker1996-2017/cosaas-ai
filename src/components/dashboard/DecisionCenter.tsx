@@ -1,209 +1,250 @@
 import { useState } from 'react';
-import { Check, X, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
-import { Decision, DecisionStatus } from '@/types/executive';
+import { Check, X, Pencil, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-
-// Mock decisions
-const mockDecisions: Decision[] = [
-  {
-    id: '1',
-    title: 'Increase Marketing Budget',
-    status: 'pending',
-    confidenceScore: 0.85,
-    riskLevel: 'medium',
-    agentProposing: 'Sales & Marketing',
-    reasoning: 'Based on Q1 performance and lead generation trends, increasing budget by 20% could yield 35% more qualified leads.',
-    impactIfApproved: 'Expected +$50K MRR within 3 months',
-    impactIfRejected: 'Lead pipeline may stagnate',
-    financialImpact: '+$15,000/month',
-    deadline: new Date(Date.now() + 86400000),
-  },
-  {
-    id: '2',
-    title: 'Renew Client Policy',
-    status: 'pending',
-    confidenceScore: 0.92,
-    riskLevel: 'low',
-    agentProposing: 'Finance',
-    reasoning: 'Based on payment history (fresh: 1h ago). Risk: Low. Assumptions: No claims. Could go wrong: Fraud.',
-    impactIfApproved: 'Client retention secured for 12 months',
-    impactIfRejected: 'Client may churn',
-    deadline: new Date(Date.now() + 172800000),
-  },
-  {
-    id: '3',
-    title: 'Tech Hiring Freeze',
-    status: 'approved',
-    confidenceScore: 0.88,
-    riskLevel: 'medium',
-    agentProposing: 'Finance',
-    reasoning: 'Current runway optimization needed. Engineering team at capacity.',
-    impactIfApproved: 'Save $200K annually',
-    impactIfRejected: 'Continue normal hiring',
-    deadline: new Date(Date.now() - 86400000),
-  },
-  {
-    id: '4',
-    title: 'High-Risk Claim',
-    status: 'rejected',
-    confidenceScore: 0.75,
-    riskLevel: 'high',
-    agentProposing: 'Customer Support',
-    reasoning: 'Claim exceeds typical range. Documentation incomplete.',
-    impactIfApproved: 'Potential loss of $50K',
-    impactIfRejected: 'Client may escalate',
-    deadline: new Date(Date.now() - 172800000),
-  },
-];
-
-const statusConfig: Record<DecisionStatus, { label: string; badgeClass: string }> = {
-  pending: { label: 'Pending', badgeClass: 'badge-warning' },
-  approved: { label: 'Approved', badgeClass: 'badge-success' },
-  rejected: { label: 'Rejected', badgeClass: 'badge-danger' },
-  modified: { label: 'Modified', badgeClass: 'badge-info' },
-};
+import { useDecisions } from '@/hooks/useDecisions';
+import { toast } from 'sonner';
 
 interface DecisionCenterProps {
   className?: string;
 }
 
 export function DecisionCenter({ className }: DecisionCenterProps) {
-  const [decisions, setDecisions] = useState(mockDecisions);
+  const { decisions, isLoading, approveDecision, rejectDecision, isUpdating } = useDecisions();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const handleApprove = (id: string) => {
-    setDecisions((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, status: 'approved' as DecisionStatus } : d))
-    );
+  const handleApprove = async (id: string) => {
+    setProcessingId(id);
+    try {
+      await approveDecision(id);
+      toast.success('Decision approved');
+    } catch (error) {
+      toast.error('Failed to approve decision');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
-  const handleReject = (id: string) => {
-    setDecisions((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, status: 'rejected' as DecisionStatus } : d))
-    );
+  const handleReject = async (id: string) => {
+    setProcessingId(id);
+    try {
+      await rejectDecision(id);
+      toast.success('Decision rejected');
+    } catch (error) {
+      toast.error('Failed to reject decision');
+    } finally {
+      setProcessingId(null);
+    }
   };
+
+  const getRiskBadge = (level: string | null) => {
+    switch (level) {
+      case 'low':
+        return 'badge-success';
+      case 'medium':
+        return 'badge-warning';
+      case 'high':
+      case 'critical':
+        return 'badge-danger';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    switch (status) {
+      case 'pending':
+        return 'badge-warning';
+      case 'approved':
+        return 'badge-success';
+      case 'rejected':
+        return 'badge-danger';
+      case 'modified':
+        return 'bg-primary/20 text-primary';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className={cn('panel', className)}>
+        <div className="panel-header">Decision Center</div>
+        <div className="p-6 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  const pendingDecisions = decisions.filter((d) => d.status === 'pending');
+  const otherDecisions = decisions.filter((d) => d.status !== 'pending').slice(0, 3);
 
   return (
     <div className={cn('panel', className)}>
-      <div className="panel-header">Decision Center</div>
-      
+      <div className="panel-header flex items-center justify-between">
+        <span>Decision Center</span>
+        <span className="text-xs text-muted-foreground">{pendingDecisions.length} pending</span>
+      </div>
+
       <div className="p-3 space-y-3">
-        {decisions.map((decision) => {
-          const isExpanded = expandedId === decision.id;
-          const isPending = decision.status === 'pending';
+        {decisions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Check className="w-8 h-8 text-success mb-2" />
+            <p className="text-sm text-muted-foreground">No decisions pending</p>
+            <p className="text-xs text-muted-foreground mt-1">New decisions will appear here</p>
+          </div>
+        ) : (
+          <>
+            {pendingDecisions.map((decision) => {
+              const isExpanded = expandedId === decision.id;
+              const isProcessing = processingId === decision.id;
 
-          return (
-            <div
-              key={decision.id}
-              className={cn(
-                'decision-card',
-                decision.riskLevel
-              )}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-foreground truncate">
-                    {decision.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    By {decision.agentProposing}
-                  </p>
-                </div>
-                <span className={cn('text-xs px-2 py-0.5 rounded shrink-0', statusConfig[decision.status].badgeClass)}>
-                  {statusConfig[decision.status].label}
-                </span>
-              </div>
-
-              {/* Confidence Bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Confidence</span>
-                  <span className="text-primary font-medium">
-                    {Math.round(decision.confidenceScore * 100)}%
-                  </span>
-                </div>
-                <Progress
-                  value={decision.confidenceScore * 100}
-                  className="h-1.5"
-                />
-              </div>
-
-              {/* Actions */}
-              {isPending && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="flex-1 h-8"
-                    onClick={() => handleApprove(decision.id)}
-                  >
-                    <Check className="w-3 h-3 mr-1" />
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="flex-1 h-8"
-                    onClick={() => handleReject(decision.id)}
-                  >
-                    <X className="w-3 h-3 mr-1" />
-                    Reject
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 px-2">
-                    <Pencil className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-
-              {/* Expand Toggle */}
-              <button
-                onClick={() => setExpandedId(isExpanded ? null : decision.id)}
-                className="w-full flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {isExpanded ? (
-                  <>
-                    <ChevronUp className="w-3 h-3" />
-                    <span>Hide Details</span>
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-3 h-3" />
-                    <span>Why?</span>
-                  </>
-                )}
-              </button>
-
-              {/* Expanded Details */}
-              {isExpanded && (
-                <div className="pt-3 border-t border-border space-y-2 animate-fade-in">
-                  <div>
-                    <h5 className="text-xs font-semibold text-foreground">Reasoning</h5>
-                    <p className="text-xs text-muted-foreground">{decision.reasoning}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <h5 className="text-xs font-semibold text-exec-success">If Approved</h5>
-                      <p className="text-xs text-muted-foreground">{decision.impactIfApproved}</p>
+              return (
+                <div
+                  key={decision.id}
+                  className={cn('decision-card', decision.risk_level || 'low')}
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-foreground truncate">
+                        {decision.title}
+                      </h4>
+                      {decision.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                          {decision.description}
+                        </p>
+                      )}
                     </div>
-                    <div>
-                      <h5 className="text-xs font-semibold text-exec-danger">If Rejected</h5>
-                      <p className="text-xs text-muted-foreground">{decision.impactIfRejected}</p>
-                    </div>
+                    <span className={cn('text-xs px-2 py-0.5 rounded shrink-0', getRiskBadge(decision.risk_level))}>
+                      {decision.risk_level || 'unknown'}
+                    </span>
                   </div>
-                  {decision.financialImpact && (
-                    <div>
-                      <h5 className="text-xs font-semibold text-foreground">Financial Impact</h5>
-                      <p className="text-xs text-primary font-medium">{decision.financialImpact}</p>
+
+                  {/* Confidence Bar */}
+                  {decision.confidence_score && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Confidence</span>
+                        <span className="text-primary font-medium">
+                          {Math.round(Number(decision.confidence_score) * 100)}%
+                        </span>
+                      </div>
+                      <Progress value={Number(decision.confidence_score) * 100} className="h-1.5" />
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="flex-1 h-8"
+                      onClick={() => handleApprove(decision.id)}
+                      disabled={isUpdating || isProcessing}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="w-3 h-3 mr-1" />
+                          Approve
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1 h-8"
+                      onClick={() => handleReject(decision.id)}
+                      disabled={isUpdating || isProcessing}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <X className="w-3 h-3 mr-1" />
+                          Reject
+                        </>
+                      )}
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 px-2">
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  </div>
+
+                  {/* Expand Toggle */}
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : decision.id)}
+                    className="w-full flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp className="w-3 h-3" />
+                        <span>Hide Details</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-3 h-3" />
+                        <span>Why?</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="pt-3 border-t border-border space-y-2 animate-fade-in">
+                      {decision.reasoning && (
+                        <div>
+                          <h5 className="text-xs font-semibold text-foreground">Reasoning</h5>
+                          <p className="text-xs text-muted-foreground">{decision.reasoning}</p>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        {decision.impact_if_approved && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-exec-success">If Approved</h5>
+                            <p className="text-xs text-muted-foreground">{decision.impact_if_approved}</p>
+                          </div>
+                        )}
+                        {decision.impact_if_rejected && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-exec-danger">If Rejected</h5>
+                            <p className="text-xs text-muted-foreground">{decision.impact_if_rejected}</p>
+                          </div>
+                        )}
+                      </div>
+                      {decision.financial_impact && (
+                        <div>
+                          <h5 className="text-xs font-semibold text-foreground">Financial Impact</h5>
+                          <p className="text-xs text-primary font-medium">{decision.financial_impact}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+
+            {/* Recent Decisions */}
+            {otherDecisions.length > 0 && (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Recent</p>
+                {otherDecisions.map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 py-1 text-xs">
+                    <span className={cn('px-1.5 py-0.5 rounded', getStatusBadge(d.status))}>
+                      {d.status}
+                    </span>
+                    <span className="truncate flex-1">{d.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,21 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Sparkles } from 'lucide-react';
-import { ChatMessage } from '@/types/executive';
+import { Send, Mic, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCommands } from '@/hooks/useCommands';
+import { toast } from 'sonner';
 
-// Mock initial messages
-const initialMessages: ChatMessage[] = [
-  {
-    id: '1',
-    role: 'ai',
-    content: 'Good morning. I am fully synchronized with company objectives, active risks, and prior executive decisions. How would you like to proceed?',
-    timestamp: new Date(Date.now() - 60000),
-    confidenceScore: 0.98,
-  },
-];
+interface ChatMessage {
+  id: string;
+  role: 'ceo' | 'ai';
+  content: string;
+  timestamp: Date;
+  status?: 'sending' | 'sent' | 'error';
+  confidenceScore?: number;
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+}
 
 const suggestedCommands = [
   'Add new client',
@@ -30,45 +31,109 @@ interface CommandCenterProps {
 }
 
 export function CommandCenter({ className }: CommandCenterProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const { user } = useAuth();
+  const { commands, createCommand, isCreating } = useCommands();
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'ai',
+      content: 'Good morning. I am fully synchronized with company objectives, active risks, and prior executive decisions. How would you like to proceed?',
+      timestamp: new Date(),
+      confidenceScore: 0.98,
+    },
+  ]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Convert database commands to chat messages
+  useEffect(() => {
+    if (commands.length > 0) {
+      const commandMessages: ChatMessage[] = [];
+      
+      commands.forEach((cmd) => {
+        // Add CEO message
+        commandMessages.push({
+          id: `cmd-${cmd.id}`,
+          role: 'ceo',
+          content: cmd.command_text,
+          timestamp: new Date(cmd.created_at),
+          status: 'sent',
+        });
+
+        // Add AI response based on status
+        if (cmd.status === 'completed') {
+          commandMessages.push({
+            id: `resp-${cmd.id}`,
+            role: 'ai',
+            content: cmd.result 
+              ? `Command executed successfully. ${JSON.stringify(cmd.result)}`
+              : 'Command completed successfully.',
+            timestamp: cmd.completed_at ? new Date(cmd.completed_at) : new Date(cmd.created_at),
+            confidenceScore: cmd.confidence_score ? Number(cmd.confidence_score) : 0.95,
+            riskLevel: cmd.risk_level as ChatMessage['riskLevel'],
+          });
+        } else if (cmd.status === 'in_progress') {
+          commandMessages.push({
+            id: `resp-${cmd.id}`,
+            role: 'ai',
+            content: `Processing your request: "${cmd.command_text}". Initiating workflow analysis...`,
+            timestamp: new Date(cmd.created_at),
+            confidenceScore: 0.85,
+          });
+        } else if (cmd.status === 'failed') {
+          commandMessages.push({
+            id: `resp-${cmd.id}`,
+            role: 'ai',
+            content: cmd.error_message || 'Command execution failed. Please try again.',
+            timestamp: new Date(cmd.created_at),
+            riskLevel: 'high',
+          });
+        } else if (cmd.status === 'queued') {
+          commandMessages.push({
+            id: `resp-${cmd.id}`,
+            role: 'ai',
+            content: `Understood. I'm processing your request: "${cmd.command_text}". Initiating workflow analysis and coordinating with relevant agents.`,
+            timestamp: new Date(cmd.created_at),
+            confidenceScore: 0.92,
+            riskLevel: 'low',
+          });
+        }
+      });
+
+      // Sort by timestamp and update local messages
+      commandMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      
+      setLocalMessages((prev) => {
+        // Keep welcome message and add command messages
+        const welcomeMsg = prev.find((m) => m.id === 'welcome');
+        return welcomeMsg ? [welcomeMsg, ...commandMessages] : commandMessages;
+      });
+    }
+  }, [commands]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [localMessages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isCreating) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'ceo',
-      content: input,
-      timestamp: new Date(),
-      status: 'sent',
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const commandText = input.trim();
     setInput('');
-    setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'ai',
-        content: `Understood. I'm processing your request: "${input}". Initiating workflow analysis and coordinating with relevant agents. You'll receive real-time updates as actions are executed.`,
-        timestamp: new Date(),
-        confidenceScore: 0.92,
-        riskLevel: 'low',
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1500);
+    try {
+      await createCommand(commandText);
+      toast.success('Command queued for execution');
+    } catch (error) {
+      console.error('Failed to create command:', error);
+      if (error instanceof Error && error.message.includes('organization')) {
+        toast.error('Please complete your organization setup first.');
+      } else {
+        toast.error('Failed to send command. Please try again.');
+      }
+    }
   };
 
   const handleSuggestedCommand = (command: string) => {
@@ -81,12 +146,17 @@ export function CommandCenter({ className }: CommandCenterProps) {
       <div className="panel-header flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary" />
         <span>Command Center</span>
+        {commands.length > 0 && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {commands.filter((c) => c.status === 'in_progress').length} active
+          </span>
+        )}
       </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4">
-          {messages.map((message) => (
+          {localMessages.map((message) => (
             <div
               key={message.id}
               className={cn(
@@ -115,7 +185,8 @@ export function CommandCenter({ className }: CommandCenterProps) {
                       'text-xs px-1.5 py-0.5 rounded',
                       message.riskLevel === 'low' && 'badge-success',
                       message.riskLevel === 'medium' && 'badge-warning',
-                      message.riskLevel === 'high' && 'badge-danger'
+                      message.riskLevel === 'high' && 'badge-danger',
+                      message.riskLevel === 'critical' && 'badge-danger'
                     )}
                   >
                     {message.riskLevel} risk
@@ -125,8 +196,8 @@ export function CommandCenter({ className }: CommandCenterProps) {
             </div>
           ))}
 
-          {/* Typing Indicator */}
-          {isTyping && (
+          {/* Creating Indicator */}
+          {isCreating && (
             <div className="flex items-start animate-fade-in">
               <div className="chat-bubble ai">
                 <div className="flex items-center gap-1">
@@ -139,6 +210,16 @@ export function CommandCenter({ className }: CommandCenterProps) {
           )}
         </div>
       </ScrollArea>
+
+      {/* No Organization Warning */}
+      {user && commands.length === 0 && (
+        <div className="px-4 py-2 border-t border-border">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 rounded-lg p-2">
+            <AlertCircle className="w-4 h-4 text-warning" />
+            <span>Complete organization setup to enable full command execution.</span>
+          </div>
+        </div>
+      )}
 
       {/* Suggested Commands */}
       <div className="px-4 py-2 border-t border-border">
@@ -162,15 +243,16 @@ export function CommandCenter({ className }: CommandCenterProps) {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Speak or type your command as CEO..."
               className="pr-10 bg-secondary border-0 focus-visible:ring-primary"
+              disabled={isCreating}
             />
             <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
               <Mic className="w-4 h-4" />
             </button>
           </div>
-          <Button onClick={handleSend} size="icon" className="shrink-0">
+          <Button onClick={handleSend} size="icon" className="shrink-0" disabled={isCreating || !input.trim()}>
             <Send className="w-4 h-4" />
           </Button>
         </div>
