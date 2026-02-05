@@ -10,6 +10,103 @@
  import { toast } from 'sonner';
  import { Loader2, Building2, Sparkles } from 'lucide-react';
  
+// Industry-specific agent configurations
+const getAgentsForIndustryMarket = (industry: string, market: string) => {
+  const baseAgents = [
+    { name: 'Chief of Staff', emoji: '🎯', role: 'Executive coordination, priority management, cross-functional alignment' },
+  ];
+
+  // Industry-specific agents
+  const industryAgents: Record<string, { name: string; emoji: string; role: string }[]> = {
+    'Technology': [
+      { name: 'Tech Ops Agent', emoji: '⚙️', role: 'Technical infrastructure, system monitoring, DevOps coordination, sprint planning' },
+      { name: 'Product Agent', emoji: '🚀', role: 'Product roadmap, feature prioritization, user feedback analysis' },
+    ],
+    'Healthcare': [
+      { name: 'Compliance Agent', emoji: '📋', role: 'HIPAA compliance, regulatory monitoring, audit preparation' },
+      { name: 'Patient Ops Agent', emoji: '🏥', role: 'Patient experience, care coordination, appointment optimization' },
+    ],
+    'Finance': [
+      { name: 'Risk Agent', emoji: '⚠️', role: 'Risk assessment, compliance monitoring, fraud detection' },
+      { name: 'Portfolio Agent', emoji: '📊', role: 'Investment analysis, portfolio optimization, market research' },
+    ],
+    'Retail': [
+      { name: 'Inventory Agent', emoji: '📦', role: 'Stock management, supply chain optimization, vendor relations' },
+      { name: 'Merchandising Agent', emoji: '🏪', role: 'Product placement, pricing strategy, seasonal planning' },
+    ],
+    'Manufacturing': [
+      { name: 'Production Agent', emoji: '🏭', role: 'Production scheduling, quality control, equipment maintenance' },
+      { name: 'Supply Chain Agent', emoji: '🚚', role: 'Supplier management, logistics optimization, procurement' },
+    ],
+    'Education': [
+      { name: 'Curriculum Agent', emoji: '📚', role: 'Course development, learning outcomes, accreditation compliance' },
+      { name: 'Student Success Agent', emoji: '🎓', role: 'Enrollment management, student engagement, retention analysis' },
+    ],
+    'Real Estate': [
+      { name: 'Property Agent', emoji: '🏠', role: 'Listing management, market analysis, property valuation' },
+      { name: 'Transaction Agent', emoji: '📝', role: 'Deal coordination, contract management, closing process' },
+    ],
+    'Consulting': [
+      { name: 'Project Agent', emoji: '📋', role: 'Project delivery, resource allocation, milestone tracking' },
+      { name: 'Knowledge Agent', emoji: '🧠', role: 'Best practices, methodology updates, thought leadership' },
+    ],
+    'Marketing': [
+      { name: 'Campaign Agent', emoji: '📣', role: 'Campaign management, creative coordination, performance tracking' },
+      { name: 'Analytics Agent', emoji: '📈', role: 'Marketing analytics, attribution modeling, ROI optimization' },
+    ],
+  };
+
+  // Market-specific agents
+  const marketAgents: Record<string, { name: string; emoji: string; role: string }[]> = {
+    'B2B SaaS': [
+      { name: 'Customer Success Agent', emoji: '🤝', role: 'Onboarding, retention, expansion revenue, health scoring' },
+      { name: 'Sales Ops Agent', emoji: '💼', role: 'Pipeline management, deal velocity, revenue forecasting' },
+    ],
+    'B2C': [
+      { name: 'Growth Agent', emoji: '📈', role: 'User acquisition, conversion optimization, viral loops' },
+      { name: 'Community Agent', emoji: '👥', role: 'Social engagement, brand advocacy, user feedback' },
+    ],
+    'Enterprise': [
+      { name: 'Account Agent', emoji: '🏢', role: 'Strategic accounts, executive relationships, multi-year contracts' },
+      { name: 'Security Agent', emoji: '🔒', role: 'Security compliance, data governance, audit support' },
+    ],
+    'SMB': [
+      { name: 'Velocity Sales Agent', emoji: '⚡', role: 'High-volume sales, self-serve optimization, quick wins' },
+      { name: 'Support Agent', emoji: '🛟', role: 'Customer support, ticket resolution, knowledge base' },
+    ],
+    'Marketplace': [
+      { name: 'Supply Agent', emoji: '📦', role: 'Seller onboarding, inventory management, quality control' },
+      { name: 'Demand Agent', emoji: '🛒', role: 'Buyer acquisition, search optimization, trust & safety' },
+    ],
+    'E-commerce': [
+      { name: 'Commerce Agent', emoji: '🛍️', role: 'Catalog management, pricing, promotions, checkout optimization' },
+      { name: 'Fulfillment Agent', emoji: '📬', role: 'Order management, shipping, returns, customer service' },
+    ],
+    'Professional Services': [
+      { name: 'Engagement Agent', emoji: '📊', role: 'Client engagements, billing, utilization tracking' },
+      { name: 'Talent Agent', emoji: '👤', role: 'Staffing, skills matching, professional development' },
+    ],
+  };
+
+  // Core agents that apply to all organizations
+  const coreAgents = [
+    { name: 'Finance Agent', emoji: '💰', role: 'Financial analysis, budgeting, revenue forecasting, expense tracking' },
+    { name: 'HR Agent', emoji: '👥', role: 'Talent management, team health, culture initiatives, hiring coordination' },
+  ];
+
+  // Combine agents based on selections
+  const selectedIndustryAgents = industryAgents[industry] || [
+    { name: 'Operations Agent', emoji: '⚙️', role: 'Process optimization, workflow automation, efficiency tracking' },
+  ];
+  
+  const selectedMarketAgents = marketAgents[market] || [
+    { name: 'Sales Agent', emoji: '📈', role: 'Pipeline management, deal tracking, revenue operations' },
+    { name: 'Support Agent', emoji: '🛟', role: 'Customer success, ticket management, satisfaction monitoring' },
+  ];
+
+  return [...baseAgents, ...coreAgents, ...selectedIndustryAgents, ...selectedMarketAgents];
+};
+
  const industries = [
    'Technology',
    'Healthcare',
@@ -92,15 +189,8 @@
        if (roleError) throw roleError;
        
        // 4. Create default AI agents for the organization
-       const defaultAgents = [
-         { name: 'Chief of Staff', emoji: '🎯', role: 'Executive coordination, priority management, cross-functional alignment' },
-         { name: 'Finance Agent', emoji: '💰', role: 'Financial analysis, budgeting, revenue forecasting, expense tracking' },
-         { name: 'HR Agent', emoji: '👥', role: 'Talent management, team health, culture initiatives, hiring coordination' },
-         { name: 'Tech Ops Agent', emoji: '⚙️', role: 'Technical infrastructure, system monitoring, DevOps coordination' },
-         { name: 'Sales Agent', emoji: '📈', role: 'Pipeline management, deal tracking, revenue operations, client outreach' },
-         { name: 'Support Agent', emoji: '🛟', role: 'Customer success, ticket management, satisfaction monitoring' }
-       ];
-       
+       const customAgents = getAgentsForIndustryMarket(industry || 'Other', market || 'Other');
+ 
        const agentInserts: {
          name: string;
          emoji: string;
@@ -108,7 +198,7 @@
          organization_id: string;
          is_system_agent: boolean;
          status: 'available' | 'busy' | 'error' | 'maintenance';
-       }[] = defaultAgents.map(agent => ({
+       }[] = customAgents.map(agent => ({
          ...agent,
          organization_id: org.id,
          is_system_agent: true,
