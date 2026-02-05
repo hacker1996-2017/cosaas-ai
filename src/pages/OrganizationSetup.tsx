@@ -10,103 +10,6 @@
  import { toast } from 'sonner';
  import { Loader2, Building2, Sparkles } from 'lucide-react';
  
-// Industry-specific agent configurations
-const getAgentsForIndustryMarket = (industry: string, market: string) => {
-  const baseAgents = [
-    { name: 'Chief of Staff', emoji: '🎯', role: 'Executive coordination, priority management, cross-functional alignment' },
-  ];
-
-  // Industry-specific agents
-  const industryAgents: Record<string, { name: string; emoji: string; role: string }[]> = {
-    'Technology': [
-      { name: 'Tech Ops Agent', emoji: '⚙️', role: 'Technical infrastructure, system monitoring, DevOps coordination, sprint planning' },
-      { name: 'Product Agent', emoji: '🚀', role: 'Product roadmap, feature prioritization, user feedback analysis' },
-    ],
-    'Healthcare': [
-      { name: 'Compliance Agent', emoji: '📋', role: 'HIPAA compliance, regulatory monitoring, audit preparation' },
-      { name: 'Patient Ops Agent', emoji: '🏥', role: 'Patient experience, care coordination, appointment optimization' },
-    ],
-    'Finance': [
-      { name: 'Risk Agent', emoji: '⚠️', role: 'Risk assessment, compliance monitoring, fraud detection' },
-      { name: 'Portfolio Agent', emoji: '📊', role: 'Investment analysis, portfolio optimization, market research' },
-    ],
-    'Retail': [
-      { name: 'Inventory Agent', emoji: '📦', role: 'Stock management, supply chain optimization, vendor relations' },
-      { name: 'Merchandising Agent', emoji: '🏪', role: 'Product placement, pricing strategy, seasonal planning' },
-    ],
-    'Manufacturing': [
-      { name: 'Production Agent', emoji: '🏭', role: 'Production scheduling, quality control, equipment maintenance' },
-      { name: 'Supply Chain Agent', emoji: '🚚', role: 'Supplier management, logistics optimization, procurement' },
-    ],
-    'Education': [
-      { name: 'Curriculum Agent', emoji: '📚', role: 'Course development, learning outcomes, accreditation compliance' },
-      { name: 'Student Success Agent', emoji: '🎓', role: 'Enrollment management, student engagement, retention analysis' },
-    ],
-    'Real Estate': [
-      { name: 'Property Agent', emoji: '🏠', role: 'Listing management, market analysis, property valuation' },
-      { name: 'Transaction Agent', emoji: '📝', role: 'Deal coordination, contract management, closing process' },
-    ],
-    'Consulting': [
-      { name: 'Project Agent', emoji: '📋', role: 'Project delivery, resource allocation, milestone tracking' },
-      { name: 'Knowledge Agent', emoji: '🧠', role: 'Best practices, methodology updates, thought leadership' },
-    ],
-    'Marketing': [
-      { name: 'Campaign Agent', emoji: '📣', role: 'Campaign management, creative coordination, performance tracking' },
-      { name: 'Analytics Agent', emoji: '📈', role: 'Marketing analytics, attribution modeling, ROI optimization' },
-    ],
-  };
-
-  // Market-specific agents
-  const marketAgents: Record<string, { name: string; emoji: string; role: string }[]> = {
-    'B2B SaaS': [
-      { name: 'Customer Success Agent', emoji: '🤝', role: 'Onboarding, retention, expansion revenue, health scoring' },
-      { name: 'Sales Ops Agent', emoji: '💼', role: 'Pipeline management, deal velocity, revenue forecasting' },
-    ],
-    'B2C': [
-      { name: 'Growth Agent', emoji: '📈', role: 'User acquisition, conversion optimization, viral loops' },
-      { name: 'Community Agent', emoji: '👥', role: 'Social engagement, brand advocacy, user feedback' },
-    ],
-    'Enterprise': [
-      { name: 'Account Agent', emoji: '🏢', role: 'Strategic accounts, executive relationships, multi-year contracts' },
-      { name: 'Security Agent', emoji: '🔒', role: 'Security compliance, data governance, audit support' },
-    ],
-    'SMB': [
-      { name: 'Velocity Sales Agent', emoji: '⚡', role: 'High-volume sales, self-serve optimization, quick wins' },
-      { name: 'Support Agent', emoji: '🛟', role: 'Customer support, ticket resolution, knowledge base' },
-    ],
-    'Marketplace': [
-      { name: 'Supply Agent', emoji: '📦', role: 'Seller onboarding, inventory management, quality control' },
-      { name: 'Demand Agent', emoji: '🛒', role: 'Buyer acquisition, search optimization, trust & safety' },
-    ],
-    'E-commerce': [
-      { name: 'Commerce Agent', emoji: '🛍️', role: 'Catalog management, pricing, promotions, checkout optimization' },
-      { name: 'Fulfillment Agent', emoji: '📬', role: 'Order management, shipping, returns, customer service' },
-    ],
-    'Professional Services': [
-      { name: 'Engagement Agent', emoji: '📊', role: 'Client engagements, billing, utilization tracking' },
-      { name: 'Talent Agent', emoji: '👤', role: 'Staffing, skills matching, professional development' },
-    ],
-  };
-
-  // Core agents that apply to all organizations
-  const coreAgents = [
-    { name: 'Finance Agent', emoji: '💰', role: 'Financial analysis, budgeting, revenue forecasting, expense tracking' },
-    { name: 'HR Agent', emoji: '👥', role: 'Talent management, team health, culture initiatives, hiring coordination' },
-  ];
-
-  // Combine agents based on selections
-  const selectedIndustryAgents = industryAgents[industry] || [
-    { name: 'Operations Agent', emoji: '⚙️', role: 'Process optimization, workflow automation, efficiency tracking' },
-  ];
-  
-  const selectedMarketAgents = marketAgents[market] || [
-    { name: 'Sales Agent', emoji: '📈', role: 'Pipeline management, deal tracking, revenue operations' },
-    { name: 'Support Agent', emoji: '🛟', role: 'Customer success, ticket management, satisfaction monitoring' },
-  ];
-
-  return [...baseAgents, ...coreAgents, ...selectedIndustryAgents, ...selectedMarketAgents];
-};
-
  const industries = [
    'Technology',
    'Healthcare',
@@ -155,71 +58,35 @@ const getAgentsForIndustryMarket = (industry: string, market: string) => {
      setIsSubmitting(true);
      
      try {
-       // 1. Create the organization
-       const { data: org, error: orgError } = await supabase
-         .from('organizations')
-         .insert({
+        // Get the current session for the auth token
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast.error('Session expired. Please log in again.');
+          return;
+        }
+        
+        // Call the edge function to create the organization
+        const response = await supabase.functions.invoke('create-organization', {
+          body: {
            name: companyName.trim(),
            industry: industry || null,
            market: market || null,
-           autonomy_level: 'draft_actions'
-         })
-         .select()
-         .single();
+            autonomy_level: 'draft_actions',
+          },
+        });
        
-       if (orgError) throw orgError;
-       
-       // 2. Update user's profile with organization_id
-       const { error: profileError } = await supabase
-         .from('profiles')
-         .update({ organization_id: org.id })
-         .eq('id', user.id);
-       
-       if (profileError) throw profileError;
-       
-       // 3. Assign CEO role to the user
-       const { error: roleError } = await supabase
-         .from('user_roles')
-         .insert({
-           user_id: user.id,
-           organization_id: org.id,
-           role: 'ceo'
-         });
-       
-       if (roleError) throw roleError;
-       
-       // 4. Create default AI agents for the organization
-       const customAgents = getAgentsForIndustryMarket(industry || 'Other', market || 'Other');
- 
-       const agentInserts: {
-         name: string;
-         emoji: string;
-         role: string;
-         organization_id: string;
-         is_system_agent: boolean;
-         status: 'available' | 'busy' | 'error' | 'maintenance';
-       }[] = customAgents.map(agent => ({
-         ...agent,
-         organization_id: org.id,
-         is_system_agent: true,
-         status: 'available' as const
-       }));
- 
-       const { error: agentsError } = await supabase
-         .from('agents')
-         .insert(agentInserts);
-       
-       if (agentsError) {
-         console.error('Failed to create default agents:', agentsError);
-         // Don't throw - agents are nice to have but not critical
+        if (response.error) {
+          throw new Error(response.error.message || 'Failed to create organization');
        }
        
        toast.success('Organization created successfully! Welcome, CEO.');
        navigate('/', { replace: true });
        
-     } catch (error: any) {
+      } catch (error: unknown) {
        console.error('Organization setup error:', error);
-       toast.error(error.message || 'Failed to create organization');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create organization';
+        toast.error(errorMessage);
      } finally {
        setIsSubmitting(false);
      }
