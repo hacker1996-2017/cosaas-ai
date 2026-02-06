@@ -1,4 +1,4 @@
-import { LogOut, Settings, Bell, Search, User } from 'lucide-react';
+import { LogOut, Settings, Bell, Search, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
@@ -18,6 +19,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ className }: DashboardHeaderProps) {
   const { user, signOut } = useAuth();
+  const { organization } = useOrganization();
 
   const handleSignOut = async () => {
     try {
@@ -47,7 +49,16 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
           </div>
           <div className="hidden sm:block">
             <h1 className="text-sm font-bold">Chief of Staff AI</h1>
-            <p className="text-xs text-muted-foreground">Executive Operating System</p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {organization ? (
+                <>
+                  <Building2 className="w-3 h-3" />
+                  <span className="truncate max-w-32">{organization.name}</span>
+                </>
+              ) : (
+                <span>Executive Operating System</span>
+              )}
+            </div>
           </div>
         </div>
 
