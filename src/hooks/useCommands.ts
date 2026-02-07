@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,8 +8,23 @@ import { Database } from '@/integrations/supabase/types';
 type Command = Database['public']['Tables']['commands']['Row'];
 type CommandInsert = Database['public']['Tables']['commands']['Insert'];
 
+interface ProcessCommandResult {
+  success: boolean;
+  parsedIntent?: {
+    primaryIntent: string;
+    category: string;
+    entities: Array<{ type: string; value: string }>;
+    suggestedAgents: string[];
+    estimatedComplexity: string;
+    requiresDecision: boolean;
+  };
+  assignedAgent?: { id: string; name: string };
+  decision?: { id: string; title: string };
+  status: 'pending_decision' | 'completed' | 'error';
+}
+
 export function useCommands() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const queryClient = useQueryClient();
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
 
@@ -43,6 +58,8 @@ export function useCommands() {
     onInsert: (newCommand) => {
       queryClient.setQueryData<Command[]>(['commands', user?.id], (old) => {
         if (!old) return [newCommand];
+        // Avoid duplicates
+        if (old.some(cmd => cmd.id === newCommand.id)) return old;
         return [newCommand, ...old];
       });
     },
@@ -60,7 +77,24 @@ export function useCommands() {
     },
   });
 
-  // Create command mutation
+  // Process command with AI
+  const processCommand = async (commandId: string): Promise<ProcessCommandResult> => {
+    if (!session?.access_token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await supabase.functions.invoke('process-command', {
+      body: { commandId },
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || 'Failed to process command');
+    }
+
+    return response.data as ProcessCommandResult;
+  };
+
+  // Create command mutation with auto-processing
   const createCommand = useMutation({
     mutationFn: async (commandText: string) => {
       if (!user) throw new Error('User not authenticated');
@@ -91,9 +125,23 @@ export function useCommands() {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Trigger AI processing
+      try {
+        const result = await processCommand(data.id);
+        return { command: data, aiResult: result };
+      } catch (aiError) {
+        console.error('AI processing failed:', aiError);
+        // Command still created, just not AI-processed
+        return { command: data, aiResult: null };
+      }
     },
   });
+
+  // Calculate stats
+  const activeCommands = commands?.filter(c => c.status === 'in_progress').length || 0;
+  const queuedCommands = commands?.filter(c => c.status === 'queued').length || 0;
+  const completedCommands = commands?.filter(c => c.status === 'completed').length || 0;
 
   return {
     commands: commands || [],
@@ -101,5 +149,12 @@ export function useCommands() {
     error,
     createCommand: createCommand.mutateAsync,
     isCreating: createCommand.isPending,
+    processCommand,
+    stats: {
+      active: activeCommands,
+      queued: queuedCommands,
+      completed: completedCommands,
+      total: commands?.length || 0,
+    },
   };
 }

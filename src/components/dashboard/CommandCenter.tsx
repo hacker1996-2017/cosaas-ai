@@ -32,7 +32,7 @@ interface CommandCenterProps {
 
 export function CommandCenter({ className }: CommandCenterProps) {
   const { user } = useAuth();
-  const { commands, createCommand, isCreating } = useCommands();
+  const { commands, createCommand, isCreating, stats } = useCommands();
   const [input, setInput] = useState('');
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([
     {
@@ -124,8 +124,15 @@ export function CommandCenter({ className }: CommandCenterProps) {
     setInput('');
 
     try {
-      await createCommand(commandText);
-      toast.success('Command queued for execution');
+      const result = await createCommand(commandText);
+      
+      if (result.aiResult?.status === 'pending_decision') {
+        toast.success('Command analyzed. Decision pending your approval.');
+      } else if (result.aiResult?.status === 'completed') {
+        toast.success('Command executed successfully.');
+      } else {
+        toast.success('Command queued for processing.');
+      }
     } catch (error) {
       console.error('Failed to create command:', error);
       if (error instanceof Error && error.message.includes('organization')) {
@@ -146,11 +153,14 @@ export function CommandCenter({ className }: CommandCenterProps) {
       <div className="panel-header flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary" />
         <span>Command Center</span>
-        {commands.length > 0 && (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {commands.filter((c) => c.status === 'in_progress').length} active
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+          {stats.active > 0 && (
+            <span className="badge-warning px-2 py-0.5 rounded">{stats.active} active</span>
+          )}
+          {stats.queued > 0 && (
+            <span className="badge-info px-2 py-0.5 rounded">{stats.queued} queued</span>
+          )}
+        </div>
       </div>
 
       {/* Messages */}

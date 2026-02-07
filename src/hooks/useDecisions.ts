@@ -7,8 +7,15 @@ import { Database } from '@/integrations/supabase/types';
 
 type Decision = Database['public']['Tables']['decisions']['Row'];
 
+interface ExecuteDecisionResult {
+  success: boolean;
+  action: 'approved' | 'rejected';
+  decisionId: string;
+  commandStatus: string;
+}
+
 export function useDecisions() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const queryClient = useQueryClient();
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
 
@@ -39,6 +46,7 @@ export function useDecisions() {
     onInsert: (newDecision) => {
       queryClient.setQueryData<Decision[]>(['decisions', user?.id], (old) => {
         if (!old) return [newDecision];
+        if (old.some(d => d.id === newDecision.id)) return old;
         return [newDecision, ...old];
       });
     },
@@ -50,6 +58,33 @@ export function useDecisions() {
     },
   });
 
+  // Execute decision via edge function (handles command updates, timeline, memory)
+  const executeDecision = async (
+    decisionId: string,
+    action: 'approved' | 'rejected',
+    notes?: string
+  ): Promise<ExecuteDecisionResult> => {
+    if (!session?.access_token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await supabase.functions.invoke('execute-decision', {
+      body: { decisionId, action, notes },
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || 'Failed to execute decision');
+    }
+
+    // Invalidate related queries for fresh data
+    queryClient.invalidateQueries({ queryKey: ['commands', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['timeline_events', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['agents', user?.id] });
+
+    return response.data as ExecuteDecisionResult;
+  };
+
+  // Legacy local update (fallback)
   const updateDecision = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: 'approved' | 'rejected'; notes?: string }) => {
       const { data, error } = await supabase
@@ -69,12 +104,26 @@ export function useDecisions() {
     },
   });
 
+  // Calculate stats
+  const pendingCount = decisions?.filter(d => d.status === 'pending').length || 0;
+  const approvedCount = decisions?.filter(d => d.status === 'approved').length || 0;
+  const rejectedCount = decisions?.filter(d => d.status === 'rejected').length || 0;
+
   return {
     decisions: decisions || [],
     isLoading,
     error,
-    approveDecision: (id: string, notes?: string) => updateDecision.mutateAsync({ id, status: 'approved', notes }),
-    rejectDecision: (id: string, notes?: string) => updateDecision.mutateAsync({ id, status: 'rejected', notes }),
+    // Primary methods using edge functions
+    approveDecision: (id: string, notes?: string) => executeDecision(id, 'approved', notes),
+    rejectDecision: (id: string, notes?: string) => executeDecision(id, 'rejected', notes),
+    // Legacy fallback
+    updateDecisionLocal: updateDecision.mutateAsync,
     isUpdating: updateDecision.isPending,
+    stats: {
+      pending: pendingCount,
+      approved: approvedCount,
+      rejected: rejectedCount,
+      total: decisions?.length || 0,
+    },
   };
 }
