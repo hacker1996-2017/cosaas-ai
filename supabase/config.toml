@@ -1,1 +1,13 @@
 project_id = "rhuchdexnbegaffkehhg"
+
+[functions.create-organization]
+verify_jwt = true
+
+[functions.process-command]
+verify_jwt = true
+
+[functions.execute-decision]
+verify_jwt = true
+
+[functions.process-document]
+verify_jwt = true
