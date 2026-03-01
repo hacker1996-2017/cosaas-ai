@@ -12,3 +12,6 @@ export { InternalCRM } from './InternalCRM';
 export { DocumentsPanel } from './DocumentsPanel';
 export { WorkflowsPanel } from './WorkflowsPanel';
 export { IntegrationsPanel } from './IntegrationsPanel';
+export { ActionPipelinePanel } from './ActionPipelinePanel';
+export { AuditLogPanel } from './AuditLogPanel';
+export { KillSwitchControl } from './KillSwitchControl';

@@ -14,6 +14,121 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_pipeline: {
+        Row: {
+          action_description: string
+          action_params: Json
+          action_type: string
+          agent_id: string | null
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          category: Database["public"]["Enums"]["action_category"]
+          command_id: string | null
+          created_at: string
+          created_by: string
+          dispatched_at: string | null
+          error_message: string | null
+          evidence: Json | null
+          execution_completed_at: string | null
+          execution_result: Json | null
+          execution_started_at: string | null
+          id: string
+          idempotency_key: string | null
+          max_retries: number
+          organization_id: string
+          policy_evaluated_at: string | null
+          policy_result: Json | null
+          requires_approval: boolean
+          retry_count: number
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          status: Database["public"]["Enums"]["action_status"]
+          updated_at: string
+        }
+        Insert: {
+          action_description: string
+          action_params?: Json
+          action_type: string
+          agent_id?: string | null
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: Database["public"]["Enums"]["action_category"]
+          command_id?: string | null
+          created_at?: string
+          created_by: string
+          dispatched_at?: string | null
+          error_message?: string | null
+          evidence?: Json | null
+          execution_completed_at?: string | null
+          execution_result?: Json | null
+          execution_started_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          max_retries?: number
+          organization_id: string
+          policy_evaluated_at?: string | null
+          policy_result?: Json | null
+          requires_approval?: boolean
+          retry_count?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          status?: Database["public"]["Enums"]["action_status"]
+          updated_at?: string
+        }
+        Update: {
+          action_description?: string
+          action_params?: Json
+          action_type?: string
+          agent_id?: string | null
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: Database["public"]["Enums"]["action_category"]
+          command_id?: string | null
+          created_at?: string
+          created_by?: string
+          dispatched_at?: string | null
+          error_message?: string | null
+          evidence?: Json | null
+          execution_completed_at?: string | null
+          execution_result?: Json | null
+          execution_started_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          max_retries?: number
+          organization_id?: string
+          policy_evaluated_at?: string | null
+          policy_result?: Json | null
+          requires_approval?: boolean
+          retry_count?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          status?: Database["public"]["Enums"]["action_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_pipeline_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_pipeline_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "commands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_pipeline_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_instructions: {
         Row: {
           agent_id: string
@@ -126,6 +241,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          details: Json
+          event_hash: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          organization_id: string
+          previous_hash: string | null
+          resource_id: string | null
+          resource_type: string
+          sequence_number: number
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          details?: Json
+          event_hash: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          organization_id: string
+          previous_hash?: string | null
+          resource_id?: string | null
+          resource_type: string
+          sequence_number: number
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          details?: Json
+          event_hash?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          organization_id?: string
+          previous_hash?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          sequence_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -539,6 +713,73 @@ export type Database = {
           },
         ]
       }
+      commissions: {
+        Row: {
+          created_at: string
+          expected_amount: number
+          id: string
+          insurance_policy_id: string
+          insurer_id: string
+          metadata: Json
+          organization_id: string
+          rate: number
+          received_amount: number | null
+          received_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expected_amount?: number
+          id?: string
+          insurance_policy_id: string
+          insurer_id: string
+          metadata?: Json
+          organization_id: string
+          rate: number
+          received_amount?: number | null
+          received_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expected_amount?: number
+          id?: string
+          insurance_policy_id?: string
+          insurer_id?: string
+          metadata?: Json
+          organization_id?: string
+          rate?: number
+          received_amount?: number | null
+          received_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_insurance_policy_id_fkey"
+            columns: ["insurance_policy_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decisions: {
         Row: {
           agent_id: string | null
@@ -803,6 +1044,185 @@ export type Database = {
           },
         ]
       }
+      industry_kits: {
+        Row: {
+          created_at: string
+          id: string
+          industry_key: string
+          installed_at: string
+          installed_by: string | null
+          kit_config: Json
+          name: string
+          organization_id: string
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry_key: string
+          installed_at?: string
+          installed_by?: string | null
+          kit_config?: Json
+          name: string
+          organization_id: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry_key?: string
+          installed_at?: string
+          installed_by?: string | null
+          kit_config?: Json
+          name?: string
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "industry_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_policies: {
+        Row: {
+          client_id: string
+          commission_amount: number | null
+          commission_rate: number | null
+          coverage_details: Json
+          created_at: string
+          effective_date: string | null
+          expiry_date: string | null
+          id: string
+          insurer_id: string | null
+          metadata: Json
+          organization_id: string
+          policy_number: string
+          policy_type: string
+          premium_amount: number
+          status: Database["public"]["Enums"]["insurance_policy_status"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          commission_amount?: number | null
+          commission_rate?: number | null
+          coverage_details?: Json
+          created_at?: string
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          insurer_id?: string | null
+          metadata?: Json
+          organization_id: string
+          policy_number: string
+          policy_type: string
+          premium_amount?: number
+          status?: Database["public"]["Enums"]["insurance_policy_status"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          commission_amount?: number | null
+          commission_rate?: number | null
+          coverage_details?: Json
+          created_at?: string
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          insurer_id?: string | null
+          metadata?: Json
+          organization_id?: string
+          policy_number?: string
+          policy_type?: string
+          premium_amount?: number
+          status?: Database["public"]["Enums"]["insurance_policy_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurers: {
+        Row: {
+          code: string | null
+          commission_rate_default: number | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          commission_rate_default?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          commission_rate_default?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrations: {
         Row: {
           config: Json | null
@@ -864,39 +1284,183 @@ export type Database = {
       }
       organizations: {
         Row: {
+          actions_this_hour: number
           autonomy_level: Database["public"]["Enums"]["autonomy_level"] | null
           created_at: string
+          hour_reset_at: string
           id: string
           industry: string | null
+          kill_switch_active: boolean
           logo_url: string | null
           market: string | null
+          max_actions_per_hour: number
+          max_concurrent_actions: number
           name: string
           settings: Json | null
           updated_at: string
         }
         Insert: {
+          actions_this_hour?: number
           autonomy_level?: Database["public"]["Enums"]["autonomy_level"] | null
           created_at?: string
+          hour_reset_at?: string
           id?: string
           industry?: string | null
+          kill_switch_active?: boolean
           logo_url?: string | null
           market?: string | null
+          max_actions_per_hour?: number
+          max_concurrent_actions?: number
           name: string
           settings?: Json | null
           updated_at?: string
         }
         Update: {
+          actions_this_hour?: number
           autonomy_level?: Database["public"]["Enums"]["autonomy_level"] | null
           created_at?: string
+          hour_reset_at?: string
           id?: string
           industry?: string | null
+          kill_switch_active?: boolean
           logo_url?: string | null
           market?: string | null
+          max_actions_per_hour?: number
+          max_concurrent_actions?: number
           name?: string
           settings?: Json | null
           updated_at?: string
         }
         Relationships: []
+      }
+      policy_rules: {
+        Row: {
+          action: string
+          category: Database["public"]["Enums"]["action_category"]
+          condition: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          priority: number
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          category: Database["public"]["Enums"]["action_category"]
+          condition: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          priority?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          category?: Database["public"]["Enums"]["action_category"]
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          priority?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_rules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      premiums: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          due_date: string
+          id: string
+          insurance_policy_id: string
+          metadata: Json
+          organization_id: string
+          paid_amount: number | null
+          paid_at: string | null
+          payment_method: string | null
+          reference_number: string | null
+          status: Database["public"]["Enums"]["premium_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          insurance_policy_id: string
+          metadata?: Json
+          organization_id: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          status?: Database["public"]["Enums"]["premium_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          insurance_policy_id?: string
+          metadata?: Json
+          organization_id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          status?: Database["public"]["Enums"]["premium_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premiums_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "premiums_insurance_policy_id_fkey"
+            columns: ["insurance_policy_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "premiums_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -941,6 +1505,157 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_batches: {
+        Row: {
+          batch_type: string
+          completed_at: string | null
+          created_at: string
+          discrepancy_amount: number | null
+          exception_count: number
+          id: string
+          initiated_by: string | null
+          insurer_id: string | null
+          matched_amount: number | null
+          matched_count: number
+          metadata: Json
+          organization_id: string
+          started_at: string | null
+          status: string
+          total_amount: number | null
+          total_records: number
+          updated_at: string
+        }
+        Insert: {
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          discrepancy_amount?: number | null
+          exception_count?: number
+          id?: string
+          initiated_by?: string | null
+          insurer_id?: string | null
+          matched_amount?: number | null
+          matched_count?: number
+          metadata?: Json
+          organization_id: string
+          started_at?: string | null
+          status?: string
+          total_amount?: number | null
+          total_records?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          discrepancy_amount?: number | null
+          exception_count?: number
+          id?: string
+          initiated_by?: string | null
+          insurer_id?: string | null
+          matched_amount?: number | null
+          matched_count?: number
+          metadata?: Json
+          organization_id?: string
+          started_at?: string | null
+          status?: string
+          total_amount?: number | null
+          total_records?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_batches_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_batches_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_exceptions: {
+        Row: {
+          actual_amount: number | null
+          batch_id: string
+          created_at: string
+          discrepancy: number | null
+          exception_type: string
+          expected_amount: number | null
+          id: string
+          insurance_policy_id: string | null
+          metadata: Json
+          organization_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["reconciliation_status"]
+          updated_at: string
+        }
+        Insert: {
+          actual_amount?: number | null
+          batch_id: string
+          created_at?: string
+          discrepancy?: number | null
+          exception_type: string
+          expected_amount?: number | null
+          id?: string
+          insurance_policy_id?: string | null
+          metadata?: Json
+          organization_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["reconciliation_status"]
+          updated_at?: string
+        }
+        Update: {
+          actual_amount?: number | null
+          batch_id?: string
+          created_at?: string
+          discrepancy?: number | null
+          exception_type?: string
+          expected_amount?: number | null
+          id?: string
+          insurance_policy_id?: string | null
+          metadata?: Json
+          organization_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["reconciliation_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_exceptions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "reconciliation_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_exceptions_insurance_policy_id_fkey"
+            columns: ["insurance_policy_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_exceptions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1190,6 +1905,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_audit_hash: {
+        Args: {
+          p_action: string
+          p_details: Json
+          p_event_type: string
+          p_org_id: string
+          p_previous_hash: string
+          p_timestamp: string
+        }
+        Returns: string
+      }
       get_user_organization_id: { Args: { user_uuid: string }; Returns: string }
       has_org_role: {
         Args: {
@@ -1215,8 +1941,29 @@ export type Database = {
         Args: { org_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      latest_audit_hash: { Args: { p_org_id: string }; Returns: string }
+      next_audit_sequence: { Args: { p_org_id: string }; Returns: number }
     }
     Enums: {
+      action_category:
+        | "financial"
+        | "communication"
+        | "data_mutation"
+        | "integration"
+        | "scheduling"
+        | "reporting"
+        | "system"
+      action_status:
+        | "created"
+        | "policy_evaluating"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "dispatched"
+        | "executing"
+        | "completed"
+        | "failed"
+        | "cancelled"
       agent_status: "available" | "busy" | "error" | "maintenance"
       app_role: "ceo" | "admin" | "user"
       autonomy_level:
@@ -1263,7 +2010,29 @@ export type Database = {
         | "escalation"
         | "integration"
         | "system"
+      insurance_policy_status:
+        | "draft"
+        | "quoted"
+        | "bound"
+        | "active"
+        | "expired"
+        | "cancelled"
+        | "lapsed"
+        | "renewed"
       integration_status: "connected" | "disconnected" | "error" | "pending"
+      premium_status:
+        | "due"
+        | "paid"
+        | "partial"
+        | "overdue"
+        | "waived"
+        | "refunded"
+      reconciliation_status:
+        | "pending"
+        | "matched"
+        | "exception"
+        | "resolved"
+        | "escalated"
       risk_level: "low" | "medium" | "high" | "critical"
       workflow_step_status:
         | "not_started"
@@ -1398,6 +2167,27 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      action_category: [
+        "financial",
+        "communication",
+        "data_mutation",
+        "integration",
+        "scheduling",
+        "reporting",
+        "system",
+      ],
+      action_status: [
+        "created",
+        "policy_evaluating",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "dispatched",
+        "executing",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
       agent_status: ["available", "busy", "error", "maintenance"],
       app_role: ["ceo", "admin", "user"],
       autonomy_level: [
@@ -1442,7 +2232,32 @@ export const Constants = {
         "integration",
         "system",
       ],
+      insurance_policy_status: [
+        "draft",
+        "quoted",
+        "bound",
+        "active",
+        "expired",
+        "cancelled",
+        "lapsed",
+        "renewed",
+      ],
       integration_status: ["connected", "disconnected", "error", "pending"],
+      premium_status: [
+        "due",
+        "paid",
+        "partial",
+        "overdue",
+        "waived",
+        "refunded",
+      ],
+      reconciliation_status: [
+        "pending",
+        "matched",
+        "exception",
+        "resolved",
+        "escalated",
+      ],
       risk_level: ["low", "medium", "high", "critical"],
       workflow_step_status: [
         "not_started",

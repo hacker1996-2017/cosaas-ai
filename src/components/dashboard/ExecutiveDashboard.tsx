@@ -8,6 +8,9 @@ import { DocumentsPanel } from './DocumentsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 import { IntegrationsPanel } from './IntegrationsPanel';
 import { DashboardHeader } from './DashboardHeader';
+import { ActionPipelinePanel } from './ActionPipelinePanel';
+import { AuditLogPanel } from './AuditLogPanel';
+import { KillSwitchControl } from './KillSwitchControl';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function ExecutiveDashboard() {
@@ -32,11 +35,20 @@ export function ExecutiveDashboard() {
         <aside className="w-96 shrink-0 border-l border-border">
           <ScrollArea className="h-full">
             <div className="p-2 space-y-2">
+              {/* Kill Switch */}
+              <KillSwitchControl />
+
               {/* Business Context */}
               <BusinessContext />
 
+              {/* Action Pipeline */}
+              <ActionPipelinePanel />
+
               {/* Decision Center */}
               <DecisionCenter />
+
+              {/* Audit Log */}
+              <AuditLogPanel />
 
               {/* Event Timeline */}
               <EventTimeline />
