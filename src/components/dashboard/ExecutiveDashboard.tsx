@@ -32,9 +32,9 @@ export function ExecutiveDashboard() {
         </main>
 
         {/* Right Sidebar - Business Panels */}
-        <aside className="w-96 shrink-0 border-l border-border">
+        <aside className="w-[420px] shrink-0 border-l border-border">
           <ScrollArea className="h-full">
-            <div className="p-2 space-y-2">
+            <div className="p-4 space-y-3">
               {/* Kill Switch */}
               <KillSwitchControl />
 
