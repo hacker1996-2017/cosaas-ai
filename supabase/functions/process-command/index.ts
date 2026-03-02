@@ -41,6 +41,27 @@ interface ParsedIntent {
   clarificationQuestion?: string;
 }
 
+// Maps parsed intent categories to action_pipeline enum categories
+function mapIntentCategoryToActionCategory(category: string): string {
+  const map: Record<string, string> = {
+    'client_management': 'data_mutation',
+    'communication': 'communication',
+    'analysis': 'reporting',
+    'scheduling': 'scheduling',
+    'workflow': 'system',
+    'reporting': 'reporting',
+    'other': 'system',
+  }
+  return map[category] || 'system'
+}
+
+function mapComplexityToRisk(complexity: string, requiresDecision: boolean): string {
+  if (requiresDecision && complexity === 'high') return 'critical'
+  if (complexity === 'high') return 'high'
+  if (complexity === 'medium') return 'medium'
+  return 'low'
+}
+
 interface StrategicAnalysis {
   title: string;
   description: string;
@@ -155,12 +176,71 @@ Deno.serve(async (req) => {
         .eq('id', assignedAgent.id)
     }
 
-    // 6. Generate strategic analysis if required
+    // 6. Create action_pipeline entry — the SACRED governed path
+    const actionCategory = mapIntentCategoryToActionCategory(parsedIntent.category)
+    const riskLevel = mapComplexityToRisk(parsedIntent.estimatedComplexity, parsedIntent.requiresDecision)
+
+    const { data: pipelineAction, error: pipelineError } = await adminClient
+      .from('action_pipeline')
+      .insert({
+        organization_id: context.organizationId,
+        command_id: commandId,
+        agent_id: assignedAgent?.id || null,
+        created_by: user.id,
+        category: actionCategory,
+        action_type: parsedIntent.category,
+        action_description: parsedIntent.primaryIntent,
+        action_params: {
+          original_command: context.commandText,
+          entities: parsedIntent.entities,
+          suggested_agents: parsedIntent.suggestedAgents,
+          complexity: parsedIntent.estimatedComplexity,
+        },
+        risk_level: riskLevel,
+        status: 'created',
+        requires_approval: parsedIntent.requiresDecision,
+        idempotency_key: `cmd-${commandId}`,
+      })
+      .select()
+      .single()
+
+    if (pipelineError) {
+      console.error('Failed to create action_pipeline entry:', pipelineError)
+      throw new Error(`Action pipeline creation failed: ${pipelineError.message}`)
+    }
+
+    console.log(`Action pipeline entry created: ${pipelineAction.id}, status: created`)
+
+    // 7. Invoke evaluate-action to run policy engine (kill switch, rate limit, policy rules)
+    let evaluationResult = null
+    try {
+      const evalResponse = await fetch(`${supabaseUrl}/functions/v1/evaluate-action`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ actionId: pipelineAction.id }),
+      })
+
+      if (evalResponse.ok) {
+        evaluationResult = await evalResponse.json()
+        console.log(`Policy evaluation complete: ${evaluationResult.status}`)
+      } else {
+        const errText = await evalResponse.text()
+        console.error('Policy evaluation failed:', errText)
+      }
+    } catch (evalError) {
+      console.error('Error calling evaluate-action:', evalError)
+    }
+
+    // 8. If policy requires approval OR command requires decision, create decision
+    const finalStatus = evaluationResult?.status || 'pending_approval'
     let decision = null
-    if (parsedIntent.requiresDecision || context.organization.autonomyLevel !== 'execute_autonomous') {
+
+    if (finalStatus === 'pending_approval' || parsedIntent.requiresDecision) {
       const analysis = await generateStrategicAnalysis(lovableApiKey, context, parsedIntent)
-      
-      // Create decision for CEO review
+
       const { data: decisionData } = await adminClient
         .from('decisions')
         .insert({
@@ -176,7 +256,7 @@ Deno.serve(async (req) => {
           impact_if_rejected: analysis.impactIfRejected,
           financial_impact: analysis.financialImpact,
           status: 'pending',
-          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         })
         .select()
         .single()
@@ -184,28 +264,23 @@ Deno.serve(async (req) => {
       decision = decisionData
     }
 
-    // 7. Create timeline event
+    // 9. Create timeline event
     await adminClient
       .from('timeline_events')
       .insert({
         organization_id: context.organizationId,
         event_type: 'ai_action',
-        title: `Command received: "${context.commandText.substring(0, 50)}${context.commandText.length > 50 ? '...' : ''}"`,
-        description: `Assigned to ${assignedAgent?.name || 'Chief of Staff'}. ${decision ? 'Pending CEO decision.' : 'Processing autonomously.'}`,
+        title: `Command routed: "${context.commandText.substring(0, 50)}${context.commandText.length > 50 ? '...' : ''}"`,
+        description: `Routed to Action Pipeline → ${finalStatus}. Assigned to ${assignedAgent?.name || 'Chief of Staff'}.${decision ? ' Pending CEO decision.' : ''}`,
         command_id: commandId,
         agent_id: assignedAgent?.id,
         user_id: user.id,
-        icon: assignedAgent?.emoji || '🎯',
-        color: parsedIntent.estimatedComplexity === 'high' ? 'orange' : 'blue',
-        confidence_score: parsedIntent.clarificationNeeded ? 0.6 : 0.85
+        icon: finalStatus === 'approved' ? '✅' : finalStatus === 'rejected' ? '🚫' : '⚖️',
+        color: finalStatus === 'approved' ? 'green' : finalStatus === 'rejected' ? 'red' : 'orange',
+        confidence_score: parsedIntent.clarificationNeeded ? 0.6 : 0.85,
       })
 
-    // 8. If no decision required and autonomy allows, complete immediately
-    if (!decision && context.organization.autonomyLevel === 'execute_autonomous') {
-      await completeCommand(adminClient, commandId, context, parsedIntent, assignedAgent)
-    }
-
-    // 9. Reset agent status if not pending decision
+    // 10. Reset agent status if auto-approved (no pending decision)
     if (assignedAgent && !decision) {
       await adminClient
         .from('agents')
@@ -214,12 +289,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         parsedIntent,
         assignedAgent: assignedAgent ? { id: assignedAgent.id, name: assignedAgent.name } : null,
         decision: decision ? { id: decision.id, title: decision.title } : null,
-        status: decision ? 'pending_decision' : 'completed'
+        pipelineAction: { id: pipelineAction.id, status: finalStatus },
+        status: decision ? 'pending_decision' : finalStatus === 'approved' ? 'approved' : 'routed',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -497,40 +573,4 @@ function getDefaultAnalysis(context: CommandContext, intent: ParsedIntent): Stra
   }
 }
 
-async function completeCommand(
-  client: ReturnType<typeof createClient>,
-  commandId: string,
-  context: CommandContext,
-  intent: ParsedIntent,
-  agent: CommandContext['agents'][0] | null
-) {
-  // Update command as completed
-  await client
-    .from('commands')
-    .update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      result: {
-        status: 'success',
-        executedBy: agent?.name || 'Chief of Staff',
-        summary: `Executed: ${intent.primaryIntent}`,
-        entities: intent.entities
-      }
-    })
-    .eq('id', commandId)
-
-  // Create completion timeline event
-  await client
-    .from('timeline_events')
-    .insert({
-      organization_id: context.organizationId,
-      event_type: 'ai_action',
-      title: `Command completed: ${intent.primaryIntent.substring(0, 40)}`,
-      description: `Executed by ${agent?.name || 'Chief of Staff'} with ${Math.round(0.85 * 100)}% confidence.`,
-      command_id: commandId,
-      agent_id: agent?.id,
-      icon: '✅',
-      color: 'green',
-      confidence_score: 0.85
-    })
-}
+// completeCommand removed — all execution now flows through action_pipeline → evaluate-action → worker
