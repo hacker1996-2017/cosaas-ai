@@ -20,7 +20,8 @@ interface ProcessCommandResult {
   };
   assignedAgent?: { id: string; name: string };
   decision?: { id: string; title: string };
-  status: 'pending_decision' | 'completed' | 'error';
+  pipelineAction?: { id: string; status: string };
+  status: 'pending_decision' | 'approved' | 'routed' | 'error';
 }
 
 export function useCommands() {

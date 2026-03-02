@@ -128,8 +128,10 @@ export function CommandCenter({ className }: CommandCenterProps) {
       
       if (result.aiResult?.status === 'pending_decision') {
         toast.success('Command analyzed. Decision pending your approval.');
-      } else if (result.aiResult?.status === 'completed') {
-        toast.success('Command executed successfully.');
+      } else if (result.aiResult?.status === 'approved') {
+        toast.success('Command approved and routed to action pipeline.');
+      } else if (result.aiResult?.status === 'routed') {
+        toast.success('Command routed through action pipeline.');
       } else {
         toast.success('Command queued for processing.');
       }
