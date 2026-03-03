@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { 
   Search, TrendingUp, TrendingDown, BarChart3, Edit2, 
-  Loader2, UserPlus, Mail, Phone, Building 
+  Loader2, UserPlus, Mail, Phone, Building, Eye 
 } from 'lucide-react';
+import { ClientDetailView } from './ClientDetailView';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,6 +50,7 @@ export function InternalCRM({ className }: InternalCRMProps) {
   const { clients, isLoading, createClient, isCreating } = useClients();
   const [search, setSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // New client form state
@@ -107,6 +109,18 @@ export function InternalCRM({ className }: InternalCRMProps) {
         <div className="panel-header">Internal CRM</div>
         <div className="p-6 flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  // Detail view mode
+  if (detailClient) {
+    return (
+      <div className={cn('panel', className)}>
+        <div className="panel-header">Internal CRM</div>
+        <div className="p-3">
+          <ClientDetailView client={detailClient} onBack={() => setDetailClient(null)} />
         </div>
       </div>
     );
@@ -357,9 +371,12 @@ export function InternalCRM({ className }: InternalCRMProps) {
 
                       {/* Actions */}
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="h-7 text-xs flex-1">
-                          <BarChart3 className="w-3 h-3 mr-1" />
-                          Deep Analyze
+                        <Button 
+                          size="sm" variant="outline" className="h-7 text-xs flex-1"
+                          onClick={(e) => { e.stopPropagation(); setDetailClient(client); }}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Full Profile
                         </Button>
                         <Button size="sm" variant="outline" className="h-7 text-xs">
                           <Edit2 className="w-3 h-3" />
