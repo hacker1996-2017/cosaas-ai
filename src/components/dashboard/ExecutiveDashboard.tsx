@@ -11,6 +11,9 @@ import { DashboardHeader } from './DashboardHeader';
 import { ActionPipelinePanel } from './ActionPipelinePanel';
 import { AuditLogPanel } from './AuditLogPanel';
 import { KillSwitchControl } from './KillSwitchControl';
+import { AgentInstructionsPanel } from './AgentInstructionsPanel';
+import { CommunicationsPanel } from './CommunicationsPanel';
+import { InsuranceDashboard } from './InsuranceDashboard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function ExecutiveDashboard() {
@@ -53,8 +56,17 @@ export function ExecutiveDashboard() {
               {/* Event Timeline */}
               <EventTimeline />
 
+              {/* Agent Instructions */}
+              <AgentInstructionsPanel />
+
+              {/* Communications */}
+              <CommunicationsPanel />
+
               {/* Internal CRM */}
               <InternalCRM />
+
+              {/* Insurance Operations */}
+              <InsuranceDashboard />
 
               {/* Documents */}
               <DocumentsPanel />

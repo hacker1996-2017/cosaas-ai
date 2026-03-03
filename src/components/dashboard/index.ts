@@ -15,3 +15,7 @@ export { IntegrationsPanel } from './IntegrationsPanel';
 export { ActionPipelinePanel } from './ActionPipelinePanel';
 export { AuditLogPanel } from './AuditLogPanel';
 export { KillSwitchControl } from './KillSwitchControl';
+export { AgentInstructionsPanel } from './AgentInstructionsPanel';
+export { CommunicationsPanel } from './CommunicationsPanel';
+export { InsuranceDashboard } from './InsuranceDashboard';
+export { ClientDetailView } from './ClientDetailView';
