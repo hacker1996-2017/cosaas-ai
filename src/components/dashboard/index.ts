@@ -7,6 +7,7 @@ export { CommandCenter } from './CommandCenter';
 export { DashboardHeader } from './DashboardHeader';
 export { DecisionCenter } from './DecisionCenter';
 export { BusinessContext } from './BusinessContext';
+export { IndustryPanel } from './IndustryPanel';
 export { EventTimeline } from './EventTimeline';
 export { InternalCRM } from './InternalCRM';
 export { DocumentsPanel } from './DocumentsPanel';
