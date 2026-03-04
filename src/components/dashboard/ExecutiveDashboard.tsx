@@ -14,71 +14,44 @@ import { KillSwitchControl } from './KillSwitchControl';
 import { AgentInstructionsPanel } from './AgentInstructionsPanel';
 import { CommunicationsPanel } from './CommunicationsPanel';
 import { InsuranceDashboard } from './InsuranceDashboard';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { LeftSidebar } from './layout/LeftSidebar';
+import { MainCommandCenter } from './layout/MainCommandCenter';
+import { RightPanel } from './layout/RightPanel';
 
 export function ExecutiveDashboard() {
   return (
-    <div className="flex flex-col h-screen w-full bg-background">
+    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
       {/* Top Header */}
       <DashboardHeader />
 
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main Content - flex row, all children constrained */}
+      <div className="flex flex-1 overflow-hidden min-w-0">
         {/* Left Sidebar - AI Agents */}
-        <aside className="w-72 shrink-0 border-r border-border">
+        <LeftSidebar>
           <AgentsSidebar />
-        </aside>
+        </LeftSidebar>
 
         {/* Center - Command Center */}
-        <main className="flex-1 flex flex-col min-w-0">
-          <CommandCenter className="flex-1 panel m-2 mr-1" />
-        </main>
+        <MainCommandCenter>
+          <CommandCenter className="flex-1 panel m-2" />
+        </MainCommandCenter>
 
         {/* Right Sidebar - Business Panels */}
-        <aside className="w-[420px] shrink-0 border-l border-border">
-          <ScrollArea className="h-full">
-            <div className="p-4 space-y-3">
-              {/* Kill Switch */}
-              <KillSwitchControl />
-
-              {/* Business Context */}
-              <BusinessContext />
-
-              {/* Action Pipeline */}
-              <ActionPipelinePanel />
-
-              {/* Decision Center */}
-              <DecisionCenter />
-
-              {/* Audit Log */}
-              <AuditLogPanel />
-
-              {/* Event Timeline */}
-              <EventTimeline />
-
-              {/* Agent Instructions */}
-              <AgentInstructionsPanel />
-
-              {/* Communications */}
-              <CommunicationsPanel />
-
-              {/* Internal CRM */}
-              <InternalCRM />
-
-              {/* Insurance Operations */}
-              <InsuranceDashboard />
-
-              {/* Documents */}
-              <DocumentsPanel />
-
-              {/* Workflows */}
-              <WorkflowsPanel />
-
-              {/* Integrations */}
-              <IntegrationsPanel />
-            </div>
-          </ScrollArea>
-        </aside>
+        <RightPanel>
+          <KillSwitchControl />
+          <BusinessContext />
+          <ActionPipelinePanel />
+          <DecisionCenter />
+          <AuditLogPanel />
+          <EventTimeline />
+          <AgentInstructionsPanel />
+          <CommunicationsPanel />
+          <InternalCRM />
+          <InsuranceDashboard />
+          <DocumentsPanel />
+          <WorkflowsPanel />
+          <IntegrationsPanel />
+        </RightPanel>
       </div>
     </div>
   );
