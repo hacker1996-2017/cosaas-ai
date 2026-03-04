@@ -1,7 +1,7 @@
 import { AgentsSidebar } from './AgentsSidebar';
 import { CommandCenter } from './CommandCenter';
 import { DecisionCenter } from './DecisionCenter';
-import { BusinessContext } from './BusinessContext';
+import { IndustryPanel } from './IndustryPanel';
 import { EventTimeline } from './EventTimeline';
 import { InternalCRM } from './InternalCRM';
 import { DocumentsPanel } from './DocumentsPanel';
@@ -11,9 +11,7 @@ import { DashboardHeader } from './DashboardHeader';
 import { ActionPipelinePanel } from './ActionPipelinePanel';
 import { AuditLogPanel } from './AuditLogPanel';
 import { KillSwitchControl } from './KillSwitchControl';
-import { AgentInstructionsPanel } from './AgentInstructionsPanel';
 import { CommunicationsPanel } from './CommunicationsPanel';
-import { InsuranceDashboard } from './InsuranceDashboard';
 import { LeftSidebar } from './layout/LeftSidebar';
 import { MainCommandCenter } from './layout/MainCommandCenter';
 import { RightPanel } from './layout/RightPanel';
@@ -39,15 +37,13 @@ export function ExecutiveDashboard() {
         {/* Right Sidebar - Business Panels */}
         <RightPanel>
           <KillSwitchControl />
-          <BusinessContext />
+          <IndustryPanel />
           <ActionPipelinePanel />
           <DecisionCenter />
           <AuditLogPanel />
           <EventTimeline />
-          <AgentInstructionsPanel />
           <CommunicationsPanel />
           <InternalCRM />
-          <InsuranceDashboard />
           <DocumentsPanel />
           <WorkflowsPanel />
           <IntegrationsPanel />

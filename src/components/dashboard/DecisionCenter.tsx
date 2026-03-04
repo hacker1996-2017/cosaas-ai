@@ -41,30 +41,20 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
 
   const getRiskBadge = (level: string | null) => {
     switch (level) {
-      case 'low':
-        return 'badge-success';
-      case 'medium':
-        return 'badge-warning';
-      case 'high':
-      case 'critical':
-        return 'badge-danger';
-      default:
-        return 'bg-muted text-muted-foreground';
+      case 'low': return 'badge-success';
+      case 'medium': return 'badge-warning';
+      case 'high': case 'critical': return 'badge-danger';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
-      case 'pending':
-        return 'badge-warning';
-      case 'approved':
-        return 'badge-success';
-      case 'rejected':
-        return 'badge-danger';
-      case 'modified':
-        return 'bg-primary/20 text-primary';
-      default:
-        return 'bg-muted text-muted-foreground';
+      case 'pending': return 'badge-warning';
+      case 'approved': return 'badge-success';
+      case 'rejected': return 'badge-danger';
+      case 'modified': return 'bg-primary/20 text-primary';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -92,7 +82,7 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
       <div className="p-3 space-y-3">
         {decisions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <Check className="w-8 h-8 text-success mb-2" />
+            <Check className="w-8 h-8 text-[hsl(var(--accent-success))] mb-2" />
             <p className="text-sm text-muted-foreground">No decisions pending</p>
             <p className="text-xs text-muted-foreground mt-1">New decisions will appear here</p>
           </div>
@@ -110,11 +100,11 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-foreground truncate">
+                      <h4 className="text-sm font-medium text-foreground break-words">
                         {decision.title}
                       </h4>
                       {decision.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words line-clamp-2">
                           {decision.description}
                         </p>
                       )}
@@ -140,36 +130,18 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Button
-                      size="sm"
-                      variant="default"
-                      className="flex-1 h-8"
+                      size="sm" variant="default" className="flex-1 h-8"
                       onClick={() => handleApprove(decision.id)}
                       disabled={isUpdating || isProcessing}
                     >
-                      {isProcessing ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <>
-                          <Check className="w-3 h-3 mr-1" />
-                          Approve
-                        </>
-                      )}
+                      {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Approve</>}
                     </Button>
                     <Button
-                      size="sm"
-                      variant="destructive"
-                      className="flex-1 h-8"
+                      size="sm" variant="destructive" className="flex-1 h-8"
                       onClick={() => handleReject(decision.id)}
                       disabled={isUpdating || isProcessing}
                     >
-                      {isProcessing ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <>
-                          <X className="w-3 h-3 mr-1" />
-                          Reject
-                        </>
-                      )}
+                      {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3 mr-1" />Reject</>}
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 px-2">
                       <Pencil className="w-3 h-3" />
@@ -181,17 +153,7 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
                     onClick={() => setExpandedId(isExpanded ? null : decision.id)}
                     className="w-full flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {isExpanded ? (
-                      <>
-                        <ChevronUp className="w-3 h-3" />
-                        <span>Hide Details</span>
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="w-3 h-3" />
-                        <span>Why?</span>
-                      </>
-                    )}
+                    {isExpanded ? <><ChevronUp className="w-3 h-3" /><span>Hide Details</span></> : <><ChevronDown className="w-3 h-3" /><span>Why?</span></>}
                   </button>
 
                   {/* Expanded Details */}
@@ -200,27 +162,27 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
                       {decision.reasoning && (
                         <div>
                           <h5 className="text-xs font-semibold text-foreground">Reasoning</h5>
-                          <p className="text-xs text-muted-foreground">{decision.reasoning}</p>
+                          <p className="text-xs text-muted-foreground break-words">{decision.reasoning}</p>
                         </div>
                       )}
                       <div className="grid grid-cols-2 gap-2">
                         {decision.impact_if_approved && (
                           <div>
-                            <h5 className="text-xs font-semibold text-exec-success">If Approved</h5>
-                            <p className="text-xs text-muted-foreground">{decision.impact_if_approved}</p>
+                            <h5 className="text-xs font-semibold text-[hsl(var(--accent-success))]">If Approved</h5>
+                            <p className="text-xs text-muted-foreground break-words">{decision.impact_if_approved}</p>
                           </div>
                         )}
                         {decision.impact_if_rejected && (
                           <div>
-                            <h5 className="text-xs font-semibold text-exec-danger">If Rejected</h5>
-                            <p className="text-xs text-muted-foreground">{decision.impact_if_rejected}</p>
+                            <h5 className="text-xs font-semibold text-destructive">If Rejected</h5>
+                            <p className="text-xs text-muted-foreground break-words">{decision.impact_if_rejected}</p>
                           </div>
                         )}
                       </div>
                       {decision.financial_impact && (
                         <div>
                           <h5 className="text-xs font-semibold text-foreground">Financial Impact</h5>
-                          <p className="text-xs text-primary font-medium">{decision.financial_impact}</p>
+                          <p className="text-xs text-primary font-medium break-words">{decision.financial_impact}</p>
                         </div>
                       )}
                     </div>
@@ -234,11 +196,11 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
               <div className="pt-2 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-2">Recent</p>
                 {otherDecisions.map((d) => (
-                  <div key={d.id} className="flex items-center gap-2 py-1 text-xs">
-                    <span className={cn('px-1.5 py-0.5 rounded', getStatusBadge(d.status))}>
+                  <div key={d.id} className="flex items-start gap-2 py-1 text-xs">
+                    <span className={cn('px-1.5 py-0.5 rounded shrink-0', getStatusBadge(d.status))}>
                       {d.status}
                     </span>
-                    <span className="truncate flex-1">{d.title}</span>
+                    <span className="break-words min-w-0">{d.title}</span>
                   </div>
                 ))}
               </div>
