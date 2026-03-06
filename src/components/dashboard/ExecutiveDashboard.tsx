@@ -22,8 +22,8 @@ export function ExecutiveDashboard() {
       {/* Top Header */}
       <DashboardHeader />
 
-      {/* Main Content - flex row, all children constrained */}
-      <div className="flex flex-1 overflow-hidden min-w-0">
+      {/* Main Content - desktop 3-column grid to prevent overflow */}
+      <div className="flex md:grid md:grid-cols-[clamp(200px,16vw,260px)_minmax(0,2fr)_minmax(260px,1fr)] flex-1 overflow-hidden min-w-0">
         {/* Left Sidebar - AI Agents */}
         <LeftSidebar>
           <AgentsSidebar />
