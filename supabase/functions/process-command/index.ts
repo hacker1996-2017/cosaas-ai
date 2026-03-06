@@ -303,14 +303,15 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error processing command:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to process command', details: error.message }),
+      JSON.stringify({ error: 'Failed to process command', details: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
 
+// deno-lint-ignore no-explicit-any
 async function buildCommandContext(
-  client: ReturnType<typeof createClient>,
+  client: any,
   commandId: string,
   userId: string
 ): Promise<CommandContext | null> {
@@ -567,7 +568,7 @@ function getDefaultAnalysis(context: CommandContext, intent: ParsedIntent): Stra
     riskLevel: intent.estimatedComplexity === 'high' ? 'high' : 'medium',
     impactIfApproved: 'Command will be executed by the assigned agent.',
     impactIfRejected: 'No action will be taken.',
-    financialImpact: null,
+    financialImpact: undefined,
     secondOrderEffects: [],
     assumptions: ['Executive intent is correctly understood']
   }
