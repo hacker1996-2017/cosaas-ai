@@ -51,12 +51,12 @@ export function RightPanel({ children, className }: RightPanelProps) {
     );
   }
 
-  // Desktop: collapsible side panel
+  // Desktop: collapsible side panel — fills remaining space
   return (
     <aside
       className={cn(
         'shrink-0 border-l border-border transition-all duration-300 relative flex flex-col min-w-0 overflow-hidden',
-        collapsed ? 'w-12' : 'w-[clamp(280px,22vw,420px)]',
+        collapsed ? 'w-12' : 'flex-1',
         className
       )}
     >

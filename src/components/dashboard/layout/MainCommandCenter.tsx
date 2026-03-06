@@ -7,7 +7,7 @@ interface MainCommandCenterProps {
 
 export function MainCommandCenter({ children, className }: MainCommandCenterProps) {
   return (
-    <main className={cn('flex-1 flex flex-col min-w-0 overflow-hidden', className)}>
+    <main className={cn('flex flex-col min-w-0 overflow-hidden', className)} style={{ flex: '0 1 55%' }}>
       {children}
     </main>
   );
