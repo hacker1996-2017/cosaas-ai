@@ -61,11 +61,27 @@ export function useEmails(clientId?: string) {
     },
   });
 
+  const sendEmail = useMutation({
+    mutationFn: async (emailId: string) => {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: { emailId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+    },
+  });
+
   return {
     emails: emails || [],
     isLoading,
     error,
     createEmail: createEmail.mutateAsync,
     isCreating: createEmail.isPending,
+    sendEmail: sendEmail.mutateAsync,
+    isSending: sendEmail.isPending,
   };
 }

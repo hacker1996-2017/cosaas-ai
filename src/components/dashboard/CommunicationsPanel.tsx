@@ -27,7 +27,7 @@ interface CommunicationsPanelProps {
 }
 
 export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
-  const { emails, isLoading: emailsLoading, createEmail, isCreating: emailCreating } = useEmails();
+  const { emails, isLoading: emailsLoading, createEmail, isCreating: emailCreating, sendEmail, isSending: emailSending } = useEmails();
   const { calls, isLoading: callsLoading, createCall, isCreating: callCreating } = useCalls();
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
@@ -197,9 +197,30 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                         {emailStatusIcon(email.status || 'draft')}
                         <span className="text-xs font-medium text-foreground truncate">{email.subject}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {format(new Date(email.created_at), 'MMM d')}
-                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {email.status === 'draft' && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 px-1.5 text-[10px]"
+                            disabled={emailSending}
+                            onClick={async () => {
+                              try {
+                                await sendEmail(email.id);
+                                toast.success('Email sent!');
+                              } catch {
+                                toast.error('Failed to send email');
+                              }
+                            }}
+                          >
+                            <Send className="w-2.5 h-2.5 mr-0.5" />
+                            Send
+                          </Button>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(email.created_at), 'MMM d')}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-[10px] text-muted-foreground truncate">
                       To: {email.to_addresses?.join(', ')}
