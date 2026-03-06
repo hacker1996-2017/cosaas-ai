@@ -161,8 +161,8 @@ Deno.serve(async (req) => {
       .eq('id', actionId)
 
     // 8. Write audit log entry
-    const prevHash = await getLatestHash(adminClient, action.organization_id)
-    const seqNum = await getNextSequence(adminClient, action.organization_id)
+    const prevHash = await getLatestHash(adminClient, action.organization_id as string)
+    const seqNum = await getNextSequence(adminClient, action.organization_id as string)
     const eventHash = generateHash(
       action.organization_id, 'policy_evaluation', 'evaluate',
       evaluation, prevHash, new Date()
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error evaluating action:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to evaluate action', details: error.message }),
+      JSON.stringify({ error: 'Failed to evaluate action', details: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -309,7 +309,8 @@ function matchesCondition(action: Record<string, unknown>, rule: PolicyRule): bo
   return true
 }
 
-async function getLatestHash(client: ReturnType<typeof createClient>, orgId: string): Promise<string> {
+// deno-lint-ignore no-explicit-any
+async function getLatestHash(client: any, orgId: string): Promise<string> {
   const { data } = await client
     .from('audit_log')
     .select('event_hash')
@@ -318,10 +319,11 @@ async function getLatestHash(client: ReturnType<typeof createClient>, orgId: str
     .limit(1)
     .single()
 
-  return data?.event_hash || 'GENESIS'
+  return (data?.event_hash as string) || 'GENESIS'
 }
 
-async function getNextSequence(client: ReturnType<typeof createClient>, orgId: string): Promise<number> {
+// deno-lint-ignore no-explicit-any
+async function getNextSequence(client: any, orgId: string): Promise<number> {
   const { data } = await client
     .from('audit_log')
     .select('sequence_number')
@@ -330,7 +332,7 @@ async function getNextSequence(client: ReturnType<typeof createClient>, orgId: s
     .limit(1)
     .single()
 
-  return (data?.sequence_number || 0) + 1
+  return ((data?.sequence_number as number) || 0) + 1
 }
 
 function generateHash(
