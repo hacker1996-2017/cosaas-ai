@@ -56,8 +56,41 @@ export function AgentSchedulerPanel() {
     scheduled_at: '',
     agent_id: '',
     priority: 5,
-    task_config: '{}',
+    // Type-specific config fields
+    command_text: '',
+    action_type: '',
+    action_description: '',
+    workflow_id: '',
+    notification_title: '',
+    notification_body: '',
+    report_type: 'general',
+    integration_id: '',
   });
+
+  const buildTaskConfig = (): Record<string, unknown> => {
+    switch (newTask.task_type) {
+      case 'command':
+        return { command_text: newTask.command_text || newTask.name };
+      case 'action_pipeline':
+        return {
+          action_type: newTask.action_type || 'scheduled_task',
+          action_description: newTask.action_description || newTask.name,
+        };
+      case 'workflow':
+        return { workflow_id: newTask.workflow_id || undefined };
+      case 'notification':
+        return {
+          title: newTask.notification_title || newTask.name,
+          body: newTask.notification_body || newTask.description || '',
+        };
+      case 'data_sync':
+        return { integration_id: newTask.integration_id || undefined };
+      case 'report':
+        return { report_type: newTask.report_type || 'general' };
+      default:
+        return {};
+    }
+  };
 
   const handleCreate = async () => {
     if (!newTask.name.trim()) {
@@ -65,13 +98,7 @@ export function AgentSchedulerPanel() {
       return;
     }
     try {
-      let config: Record<string, unknown>;
-      try {
-        config = JSON.parse(newTask.task_config);
-      } catch {
-        toast.error('Invalid JSON in task config');
-        return;
-      }
+      const config = buildTaskConfig();
 
       await createTask({
         name: newTask.name,
@@ -85,7 +112,7 @@ export function AgentSchedulerPanel() {
       });
       toast.success('Task scheduled');
       setShowCreate(false);
-      setNewTask({ name: '', description: '', task_type: 'command', frequency: 'once', scheduled_at: '', agent_id: '', priority: 5, task_config: '{}' });
+      setNewTask({ name: '', description: '', task_type: 'command', frequency: 'once', scheduled_at: '', agent_id: '', priority: 5, command_text: '', action_type: '', action_description: '', workflow_id: '', notification_title: '', notification_body: '', report_type: 'general', integration_id: '' });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create task');
     }
