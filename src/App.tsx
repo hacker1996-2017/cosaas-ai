@@ -53,6 +53,8 @@ const App = () => (
             <Route path="/chat/:orgId" element={<ClientChat />} />
             {/* Invite acceptance route */}
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            {/* Password reset route */}
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
