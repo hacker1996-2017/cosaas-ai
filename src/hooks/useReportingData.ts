@@ -172,7 +172,7 @@ export function useReportingData() {
     const pendingDecisions = decisions?.filter(d => d.status === 'pending').length || 0;
 
     const totalActions = actions?.length || 0;
-    const executedActions = actions?.filter(a => a.status === 'executed').length || 0;
+    const executedActions = actions?.filter(a => a.status === 'completed').length || 0;
 
     const totalEmails = emails?.length || 0;
     const sentEmails = emails?.filter(e => e.status === 'sent' || e.status === 'delivered').length || 0;
