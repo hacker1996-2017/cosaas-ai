@@ -120,10 +120,11 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       await createEmail({
         to_addresses: [newEmail.to.trim()], subject: newEmail.subject.trim(),
         body_text: newEmail.body.trim(), from_address: newEmail.from.trim(), status: 'draft',
+        thread_id: newEmail.thread_id || undefined,
       });
       toast.success('Email draft created');
       setIsEmailDialogOpen(false);
-      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
+      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev', thread_id: '' });
       setAiContext('');
     } catch { toast.error('Failed to create email'); }
   };
