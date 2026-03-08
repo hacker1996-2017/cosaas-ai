@@ -143,12 +143,15 @@ export function CommandCenter({ className }: CommandCenterProps) {
     try {
       const result = await createCommand(commandText);
       
-      if (result.aiResult?.status === 'pending_decision') {
-        toast.success('Command analyzed. Decision pending your approval.');
+      if (result.aiResult?.status === 'executed') {
+        const dur = result.aiResult.executionResult?.duration_ms;
+        toast.success(`Command executed${dur ? ` in ${dur}ms` : ''}. Evidence collected.`);
+      } else if (result.aiResult?.status === 'pending_decision') {
+        toast.success('Command analyzed. Decision pending your approval in Decision Center.');
       } else if (result.aiResult?.status === 'approved') {
-        toast.success('Command approved and routed to action pipeline.');
+        toast.success('Command approved and dispatched to action pipeline.');
       } else if (result.aiResult?.status === 'routed') {
-        toast.success('Command routed through action pipeline.');
+        toast.success('Command routed through governance pipeline.');
       } else {
         toast.success('Command queued for processing.');
       }
