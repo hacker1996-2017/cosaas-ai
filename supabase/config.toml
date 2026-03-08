@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.dispatch-action]
 verify_jwt = false
+
+[functions.execute-workflow]
+verify_jwt = false

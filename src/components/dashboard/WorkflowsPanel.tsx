@@ -1,106 +1,554 @@
-import { Workflow, WorkflowStep } from '@/types/executive';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Sparkles, Check, Circle, AlertCircle, Workflow as WorkflowIcon } from 'lucide-react';
-
-const mockWorkflows: Workflow[] = [
-  {
-    id: '1',
-    name: 'Client Onboarding',
-    description: 'Standard client onboarding workflow',
-    steps: [
-      { id: '1', name: 'Claim Intake', status: 'completed', aiAssistAvailable: true },
-      { id: '2', name: 'Review & Verify', status: 'in_progress', aiAssistAvailable: true },
-      { id: '3', name: 'Payout & Close', status: 'not_started', aiAssistAvailable: true },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Invoice Processing',
-    description: 'Automated invoice handling',
-    steps: [
-      { id: '1', name: 'Receive Invoice', status: 'completed', aiAssistAvailable: false },
-      { id: '2', name: 'Validate Details', status: 'completed', aiAssistAvailable: true },
-      { id: '3', name: 'Approve & Pay', status: 'in_progress', aiAssistAvailable: true },
-    ],
-  },
-];
-
-const statusIcons = {
-  completed: <Check className="w-3 h-3 text-exec-success" />,
-  in_progress: <Circle className="w-3 h-3 text-exec-warning animate-pulse" />,
-  not_started: <Circle className="w-3 h-3 text-muted-foreground/40" />,
-  failed: <AlertCircle className="w-3 h-3 text-exec-danger" />,
-};
-
-const statusBadge = {
-  completed: 'badge-success',
-  in_progress: 'badge-warning',
-  not_started: 'bg-secondary/40 text-muted-foreground border border-border/20',
-  failed: 'badge-danger',
-};
+import {
+  Sparkles, Check, Circle, AlertCircle, Workflow as WorkflowIcon,
+  Plus, Play, Trash2, ChevronDown, ChevronUp, Loader2, Settings2,
+  Clock, Zap, XCircle, PauseCircle, RotateCcw, GripVertical,
+} from 'lucide-react';
+import { useWorkflows, WorkflowWithSteps } from '@/hooks/useWorkflows';
+import { useAgents } from '@/hooks/useAgents';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface WorkflowsPanelProps {
   className?: string;
 }
 
+const ACTION_TYPES = [
+  { value: 'send_email', label: 'Send Email', icon: '📧' },
+  { value: 'update_client', label: 'Update Client', icon: '📝' },
+  { value: 'create_task', label: 'Create Task', icon: '📋' },
+  { value: 'generate_report', label: 'Generate Report', icon: '📊' },
+  { value: 'notification', label: 'Send Notification', icon: '🔔' },
+  { value: 'ai_analysis', label: 'AI Analysis', icon: '🧠' },
+  { value: 'api_call', label: 'API Call', icon: '🔗' },
+  { value: 'approval_gate', label: 'Approval Gate', icon: '⚖️' },
+  { value: 'data_update', label: 'Data Update', icon: '💾' },
+];
+
+const TRIGGER_TYPES = [
+  { value: 'manual', label: 'Manual' },
+  { value: 'on_client_created', label: 'Client Created' },
+  { value: 'on_email_received', label: 'Email Received' },
+  { value: 'on_schedule', label: 'Scheduled' },
+  { value: 'on_event', label: 'Event Trigger' },
+];
+
+const STEP_STATUS_CONFIG: Record<string, { icon: React.ReactNode; className: string }> = {
+  not_started: { icon: <Circle className="w-3 h-3 text-muted-foreground/40" />, className: 'bg-secondary/40 text-muted-foreground border border-border/20' },
+  in_progress: { icon: <Loader2 className="w-3 h-3 animate-spin text-primary" />, className: 'bg-primary/15 text-primary border border-primary/20' },
+  completed: { icon: <Check className="w-3 h-3 text-exec-success" />, className: 'badge-success' },
+  failed: { icon: <XCircle className="w-3 h-3 text-exec-danger" />, className: 'badge-danger' },
+};
+
+type ViewMode = 'list' | 'create' | 'detail';
+
 export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
+  const {
+    workflows, isLoading, createWorkflow, deleteWorkflow,
+    executeWorkflow, executeStep, isCreating, isExecuting, isExecutingStep,
+    stats,
+  } = useWorkflows();
+  const { agents } = useAgents();
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowWithSteps | null>(null);
+  const [executingId, setExecutingId] = useState<string | null>(null);
+  const [executingStepId, setExecutingStepId] = useState<string | null>(null);
+
+  // ── Create form state
+  const [newName, setNewName] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newTrigger, setNewTrigger] = useState('manual');
+  const [newSteps, setNewSteps] = useState<Array<{
+    name: string;
+    action_type: string;
+    description: string;
+    agent_id: string;
+  }>>([{ name: '', action_type: 'send_email', description: '', agent_id: '' }]);
+
+  const handleCreate = async () => {
+    if (!newName.trim()) {
+      toast.error('Workflow name is required');
+      return;
+    }
+    if (newSteps.some(s => !s.name.trim())) {
+      toast.error('All steps must have a name');
+      return;
+    }
+
+    try {
+      await createWorkflow({
+        name: newName,
+        description: newDescription || undefined,
+        trigger_type: newTrigger,
+        steps: newSteps.map(s => ({
+          name: s.name,
+          description: s.description || undefined,
+          action_type: s.action_type,
+          agent_id: s.agent_id || undefined,
+        })),
+      });
+      toast.success('Workflow created');
+      resetForm();
+      setViewMode('list');
+    } catch (err) {
+      toast.error('Failed to create workflow');
+    }
+  };
+
+  const handleExecute = async (id: string) => {
+    setExecutingId(id);
+    try {
+      const result = await executeWorkflow(id);
+      if (result.success) {
+        toast.success(`Workflow completed: ${result.stepResults?.filter((s: { status: string }) => s.status === 'completed').length}/${result.stepResults?.length} steps`);
+      } else {
+        toast.warning(`Workflow ${result.status}: ${result.stepResults?.filter((s: { status: string }) => s.status === 'completed').length}/${result.stepResults?.length} steps completed`);
+      }
+    } catch {
+      toast.error('Workflow execution failed');
+    } finally {
+      setExecutingId(null);
+    }
+  };
+
+  const handleExecuteStep = async (stepId: string) => {
+    setExecutingStepId(stepId);
+    try {
+      const result = await executeStep(stepId);
+      toast.success(result.success ? 'Step executed' : 'Step failed');
+    } catch {
+      toast.error('Step execution failed');
+    } finally {
+      setExecutingStepId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteWorkflow(id);
+      toast.success('Workflow deleted');
+      if (selectedWorkflow?.id === id) {
+        setSelectedWorkflow(null);
+        setViewMode('list');
+      }
+    } catch {
+      toast.error('Failed to delete workflow');
+    }
+  };
+
+  const resetForm = () => {
+    setNewName('');
+    setNewDescription('');
+    setNewTrigger('manual');
+    setNewSteps([{ name: '', action_type: 'send_email', description: '', agent_id: '' }]);
+  };
+
+  const addStep = () => {
+    setNewSteps(prev => [...prev, { name: '', action_type: 'send_email', description: '', agent_id: '' }]);
+  };
+
+  const removeStep = (index: number) => {
+    if (newSteps.length > 1) {
+      setNewSteps(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateStep = (index: number, field: string, value: string) => {
+    setNewSteps(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  if (isLoading) {
+    return (
+      <div className={cn('panel', className)}>
+        <div className="panel-header">Workflows</div>
+        <div className="p-6 flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('panel', className)}>
-      <div className="panel-header flex items-center gap-2">
-        <WorkflowIcon className="w-3.5 h-3.5 text-primary" />
-        <span>Workflows</span>
+      {/* ── Header ─────────────────────────────────────── */}
+      <div className="panel-header flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <WorkflowIcon className="w-3.5 h-3.5 text-primary" />
+          <span>Workflows</span>
+          {stats.total > 0 && (
+            <span className="text-[10px] text-muted-foreground">({stats.active} active)</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {viewMode !== 'list' && (
+            <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => { setViewMode('list'); setSelectedWorkflow(null); }}>
+              ← Back
+            </Button>
+          )}
+          {viewMode === 'list' && (
+            <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={() => setViewMode('create')}>
+              <Plus className="w-3 h-3" /> New
+            </Button>
+          )}
+        </div>
       </div>
 
-      <ScrollArea className="h-52">
-        <div className="p-3 space-y-4">
-          {mockWorkflows.map((workflow) => (
-            <div key={workflow.id} className="space-y-2">
-              <div>
-                <h4 className="text-[13px] font-semibold text-foreground">{workflow.name}</h4>
-                <p className="text-[10px] text-muted-foreground">{workflow.description}</p>
+      <ScrollArea className="max-h-[500px]">
+        <div className="p-3 space-y-3">
+          {/* ── List View ─────────────────────────────── */}
+          {viewMode === 'list' && (
+            workflows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <WorkflowIcon className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
+                <p className="text-xs text-muted-foreground">No workflows yet</p>
+                <Button size="sm" variant="outline" className="mt-3 h-7 text-[11px] gap-1" onClick={() => setViewMode('create')}>
+                  <Plus className="w-3 h-3" /> Create Workflow
+                </Button>
+              </div>
+            ) : (
+              workflows.map(wf => (
+                <WorkflowCard
+                  key={wf.id}
+                  workflow={wf}
+                  isExecuting={executingId === wf.id}
+                  onExecute={() => handleExecute(wf.id)}
+                  onDelete={() => handleDelete(wf.id)}
+                  onSelect={() => { setSelectedWorkflow(wf); setViewMode('detail'); }}
+                />
+              ))
+            )
+          )}
+
+          {/* ── Create View ───────────────────────────── */}
+          {viewMode === 'create' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Workflow Name</label>
+                <Input
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  placeholder="e.g., Client Onboarding"
+                  className="h-8 text-[12px]"
+                />
               </div>
 
-              <div className="space-y-1">
-                {workflow.steps.map((step, index) => (
-                  <div
-                    key={step.id}
-                    className="flex items-center justify-between p-2 rounded-lg border border-border/20"
-                    style={{ background: 'hsl(var(--bg-soft) / 0.3)' }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-background/80 text-[10px] font-semibold font-mono text-muted-foreground border border-border/30">
-                        {index + 1}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {statusIcons[step.status]}
-                        <span className="text-[11px] text-foreground">{step.name}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded-full', statusBadge[step.status])}>
-                        {step.status.replace('_', ' ')}
-                      </span>
-                      {step.aiAssistAvailable && step.status !== 'completed' && (
-                        <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5 border-primary/20 text-primary hover:bg-primary/10">
-                          <Sparkles className="w-2.5 h-2.5 mr-0.5" />
-                          AI
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
+                <Input
+                  value={newDescription}
+                  onChange={e => setNewDescription(e.target.value)}
+                  placeholder="What does this workflow do?"
+                  className="h-8 text-[12px]"
+                />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Trigger</label>
+                <Select value={newTrigger} onValueChange={setNewTrigger}>
+                  <SelectTrigger className="h-8 text-[12px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRIGGER_TYPES.map(t => (
+                      <SelectItem key={t.value} value={t.value} className="text-[12px]">{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Steps</label>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={addStep}>
+                    <Plus className="w-3 h-3" /> Add Step
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {newSteps.map((step, index) => (
+                    <div key={index} className="rounded-lg border border-border/40 p-2.5 space-y-2" style={{ background: 'hsl(var(--bg-soft) / 0.3)' }}>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
+                          {index + 1}
+                        </div>
+                        <Input
+                          value={step.name}
+                          onChange={e => updateStep(index, 'name', e.target.value)}
+                          placeholder="Step name"
+                          className="h-7 text-[11px] flex-1"
+                        />
+                        {newSteps.length > 1 && (
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeStep(index)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={step.action_type} onValueChange={v => updateStep(index, 'action_type', v)}>
+                          <SelectTrigger className="h-7 text-[10px] flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ACTION_TYPES.map(a => (
+                              <SelectItem key={a.value} value={a.value} className="text-[11px]">
+                                {a.icon} {a.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {agents.length > 0 && (
+                          <Select value={step.agent_id || 'auto'} onValueChange={v => updateStep(index, 'agent_id', v === 'auto' ? '' : v)}>
+                            <SelectTrigger className="h-7 text-[10px] flex-1">
+                              <SelectValue placeholder="Agent" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="auto" className="text-[11px]">🤖 Auto-assign</SelectItem>
+                              {agents.map(a => (
+                                <SelectItem key={a.id} value={a.id} className="text-[11px]">
+                                  {a.emoji} {a.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Button className="w-full h-8 text-[12px] font-semibold" onClick={handleCreate} disabled={isCreating}>
+                {isCreating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                Create Workflow
+              </Button>
             </div>
-          ))}
+          )}
 
-          <p className="text-[10px] text-muted-foreground text-center pt-2 opacity-60">
-            AI-matched workflows for your industry
-          </p>
+          {/* ── Detail View ───────────────────────────── */}
+          {viewMode === 'detail' && selectedWorkflow && (
+            <WorkflowDetailView
+              workflow={selectedWorkflow}
+              isExecuting={executingId === selectedWorkflow.id}
+              executingStepId={executingStepId}
+              onExecute={() => handleExecute(selectedWorkflow.id)}
+              onExecuteStep={handleExecuteStep}
+              onDelete={() => handleDelete(selectedWorkflow.id)}
+            />
+          )}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+// ── Workflow Card ──────────────────────────────────────────────────────────────
+
+function WorkflowCard({
+  workflow, isExecuting, onExecute, onDelete, onSelect,
+}: {
+  workflow: WorkflowWithSteps;
+  isExecuting: boolean;
+  onExecute: () => void;
+  onDelete: () => void;
+  onSelect: () => void;
+}) {
+  const steps = workflow.workflow_steps || [];
+  const completedSteps = steps.filter(s => s.status === 'completed').length;
+  const progress = steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
+
+  return (
+    <div
+      className="rounded-lg border border-border/40 p-3 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
+      style={{ background: 'hsl(var(--bg-soft) / 0.2)' }}
+      onClick={onSelect}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className="text-[13px] font-semibold text-foreground truncate">{workflow.name}</h4>
+            {!workflow.is_active && (
+              <Badge variant="outline" className="text-[9px] h-4">Inactive</Badge>
+            )}
+          </div>
+          {workflow.description && (
+            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{workflow.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+          <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={onExecute} disabled={isExecuting}>
+            {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {steps.length > 0 && (
+        <div className="space-y-1">
+          <div className="h-1 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+            <span>{steps.length} steps</span>
+            <span>{workflow.execution_count || 0} runs</span>
+            <span className="capitalize">{workflow.trigger_type}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Compact step list */}
+      <div className="flex flex-wrap gap-1">
+        {steps.slice(0, 5).map((step, i) => {
+          const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG.not_started;
+          return (
+            <span key={step.id} className={cn('text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5', cfg.className)}>
+              {cfg.icon} {i + 1}
+            </span>
+          );
+        })}
+        {steps.length > 5 && (
+          <span className="text-[9px] text-muted-foreground px-1">+{steps.length - 5}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Workflow Detail View ──────────────────────────────────────────────────────
+
+function WorkflowDetailView({
+  workflow, isExecuting, executingStepId, onExecute, onExecuteStep, onDelete,
+}: {
+  workflow: WorkflowWithSteps;
+  isExecuting: boolean;
+  executingStepId: string | null;
+  onExecute: () => void;
+  onExecuteStep: (stepId: string) => void;
+  onDelete: () => void;
+}) {
+  const steps = workflow.workflow_steps || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Workflow Header */}
+      <div className="space-y-1">
+        <h3 className="text-[14px] font-bold text-foreground">{workflow.name}</h3>
+        {workflow.description && (
+          <p className="text-[11px] text-muted-foreground">{workflow.description}</p>
+        )}
+        <div className="flex flex-wrap gap-2 mt-2">
+          <Badge variant="outline" className="text-[9px] gap-1">
+            <Clock className="w-3 h-3" />
+            {workflow.trigger_type}
+          </Badge>
+          <Badge variant="outline" className="text-[9px] gap-1">
+            <Zap className="w-3 h-3" />
+            {workflow.execution_count || 0} executions
+          </Badge>
+          {workflow.last_executed_at && (
+            <Badge variant="outline" className="text-[9px]">
+              Last: {new Date(workflow.last_executed_at).toLocaleDateString()}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Execute / Delete controls */}
+      <div className="flex gap-2">
+        <Button className="flex-1 h-8 text-[11px] font-semibold gap-1" onClick={onExecute} disabled={isExecuting}>
+          {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+          Execute All Steps
+        </Button>
+        <Button variant="destructive" size="sm" className="h-8 text-[11px]" onClick={onDelete}>
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+
+      {/* Steps */}
+      <div className="space-y-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Steps ({steps.length})</p>
+        {steps.map((step, index) => {
+          const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG.not_started;
+          const isStepExecuting = executingStepId === step.id;
+          const actionType = ACTION_TYPES.find(a => a.value === step.action_type);
+
+          return (
+            <div key={step.id} className="relative">
+              {/* Connector line */}
+              {index < steps.length - 1 && (
+                <div className="absolute left-[14px] top-[40px] bottom-[-8px] w-[2px] bg-border/40" />
+              )}
+
+              <div
+                className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/30 transition-colors hover:border-border/60"
+                style={{ background: 'hsl(var(--bg-soft) / 0.15)' }}
+              >
+                {/* Step number */}
+                <div className={cn(
+                  'flex items-center justify-center w-7 h-7 rounded-full text-[10px] font-bold shrink-0 border',
+                  step.status === 'completed' ? 'bg-exec-success/15 border-exec-success/30 text-exec-success' :
+                  step.status === 'in_progress' ? 'bg-primary/15 border-primary/30 text-primary' :
+                  step.status === 'failed' ? 'bg-exec-danger/15 border-exec-danger/30 text-exec-danger' :
+                  'bg-muted border-border/40 text-muted-foreground'
+                )}>
+                  {step.status === 'completed' ? <Check className="w-3.5 h-3.5" /> :
+                   step.status === 'in_progress' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
+                   step.status === 'failed' ? <XCircle className="w-3.5 h-3.5" /> :
+                   index + 1}
+                </div>
+
+                {/* Step content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{actionType?.icon || '⚙️'}</span>
+                    <span className="text-[12px] font-semibold text-foreground truncate">{step.name}</span>
+                  </div>
+                  {step.description && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{step.description}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded-full', cfg.className)}>
+                      {step.status.replace('_', ' ')}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground">{actionType?.label || step.action_type}</span>
+                  </div>
+                </div>
+
+                {/* Step actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {step.status !== 'completed' && step.ai_assist_available && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-[9px] px-1.5 gap-0.5 border-primary/20 text-primary hover:bg-primary/10"
+                      onClick={() => onExecuteStep(step.id)}
+                      disabled={isStepExecuting}
+                    >
+                      {isStepExecuting ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <><Sparkles className="w-2.5 h-2.5" />Run</>}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
