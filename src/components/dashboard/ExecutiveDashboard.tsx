@@ -23,7 +23,7 @@ export function ExecutiveDashboard() {
       <DashboardHeader />
 
       {/* Main Content - desktop 3-column grid to prevent overflow */}
-      <div className="flex md:grid md:grid-cols-[clamp(180px,15vw,240px)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[clamp(200px,16vw,260px)_minmax(0,1fr)_minmax(0,1fr)] flex-1 overflow-hidden min-w-0 w-full max-w-full">
+      <div className="flex md:grid md:grid-cols-[clamp(180px,15vw,240px)_1fr_clamp(280px,35vw,500px)] lg:grid-cols-[clamp(200px,16vw,260px)_1fr_clamp(320px,38vw,560px)] flex-1 overflow-hidden min-w-0 w-full max-w-[100vw]">
         {/* Left Sidebar - AI Agents */}
         <LeftSidebar>
           <AgentsSidebar />
