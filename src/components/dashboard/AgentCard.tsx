@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Activity, Zap, BookOpen, Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Activity, Zap, BookOpen, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Database } from '@/integrations/supabase/types';
 import { useAgentInstructions } from '@/hooks/useAgentInstructions';
+import { DevOpsAgentView } from './DevOpsAgentView';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -29,6 +30,14 @@ const statusConfig: Record<AgentStatus, { label: string; class: string }> = {
   maintenance: { label: 'Maint.', class: 'status-dot busy' },
 };
 
+const TECHOPS_ROLES = ['devops', 'techops', 'tech ops', 'dev ops', 'infrastructure', 'sre', 'platform'];
+
+function isTechOpsAgent(agent: Agent): boolean {
+  const roleLower = agent.role?.toLowerCase() || '';
+  const nameLower = agent.name?.toLowerCase() || '';
+  return TECHOPS_ROLES.some(r => roleLower.includes(r) || nameLower.includes(r));
+}
+
 export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -43,6 +52,7 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
   const activeTasks = agent.active_tasks || 0;
   const maxCapacity = agent.max_capacity || 5;
   const status = agent.status || 'available';
+  const isTechOps = isTechOpsAgent(agent);
 
   const handleCreate = async () => {
     if (!newInstruction.instructions.trim()) {
@@ -93,6 +103,7 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
           <span className="font-semibold text-[13px] text-foreground break-words leading-tight">{agent.name}</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          {isTechOps && <Terminal className="w-3 h-3 text-primary opacity-70" />}
           <div className={statusConfig[status].class} />
           <span className="text-[10px] text-muted-foreground font-medium">
             {statusConfig[status].label}
@@ -143,6 +154,9 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
       {/* Expanded Content */}
       {expanded && (
         <div className="mt-3 pt-3 border-t border-border/30 space-y-3 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+          {/* TechOps Agent: show DevOps tools */}
+          {isTechOps && <DevOpsAgentView />}
+
           {/* Role Description */}
           <div>
             <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Specialization</h4>
