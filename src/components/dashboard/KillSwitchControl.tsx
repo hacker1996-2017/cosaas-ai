@@ -66,15 +66,15 @@ export function KillSwitchControl({ className }: KillSwitchControlProps) {
         </span>
       </div>
 
-      <div className="p-3 space-y-3">
+      <div className="p-3 space-y-3 overflow-hidden">
         {killSwitchActive && (
           <div className="flex items-start gap-2 text-[11px] bg-destructive/8 text-destructive rounded-lg p-2.5 border border-destructive/15">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span className="leading-relaxed">All AI-driven operations are halted. No automated actions will execute.</span>
+            <span className="leading-relaxed break-words min-w-0">All AI-driven operations are halted. No automated actions will execute.</span>
           </div>
         )}
 
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-[11px] text-muted-foreground leading-relaxed break-words">
           {killSwitchActive
             ? 'Deactivate to resume normal AI operations.'
             : 'Immediately halt all AI-driven actions.'}
@@ -83,19 +83,19 @@ export function KillSwitchControl({ className }: KillSwitchControlProps) {
         <Button
           variant={killSwitchActive ? 'default' : 'destructive'}
           size="sm"
-          className="w-full min-h-8 h-auto py-1.5 text-[11px] leading-tight font-semibold whitespace-normal break-words"
+          className="w-full h-8 text-xs font-semibold overflow-hidden"
           onClick={toggleKillSwitch}
           disabled={isToggling}
         >
           {isToggling ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : killSwitchActive ? (
-            'Resume Operations'
+            <span className="truncate">Resume Operations</span>
           ) : (
-            <>
-              <Power className="w-3.5 h-3.5 mr-1.5" />
-              Activate Kill Switch
-            </>
+            <span className="flex items-center gap-1.5 truncate">
+              <Power className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Activate Kill Switch</span>
+            </span>
           )}
         </Button>
       </div>

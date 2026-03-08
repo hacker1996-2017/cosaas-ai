@@ -93,7 +93,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
         </div>
       </div>
 
-      <div className="p-3 space-y-2.5">
+      <div className="p-3 space-y-2.5 overflow-hidden">
         {actions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <Zap className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
@@ -114,7 +114,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
                     <div className="flex items-start gap-2 flex-1 min-w-0">
                       <span className="shrink-0 text-sm">{getCategoryIcon(action.category)}</span>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-medium break-words leading-tight">{action.action_description}</p>
+                        <p className="text-[13px] font-medium break-words leading-tight line-clamp-2">{action.action_description}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">{action.action_type}</p>
                       </div>
                     </div>
@@ -125,14 +125,14 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
 
                   <div className="flex items-center gap-2">
                     <Button
-                      size="sm" variant="default" className="flex-1 min-w-0 h-auto min-h-7 py-1 text-[10px] leading-tight font-semibold whitespace-normal break-words"
+                      size="sm" variant="default" className="flex-1 min-w-0 h-7 text-[11px] font-semibold overflow-hidden"
                       onClick={() => handleApprove(action.id)}
                       disabled={isApproving || isProcessing}
                     >
                       {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Approve</>}
                     </Button>
                     <Button
-                      size="sm" variant="destructive" className="flex-1 min-w-0 h-auto min-h-7 py-1 text-[10px] leading-tight font-semibold whitespace-normal break-words"
+                      size="sm" variant="destructive" className="flex-1 min-w-0 h-7 text-[11px] font-semibold overflow-hidden"
                       onClick={() => handleReject(action.id)}
                       disabled={isRejecting || isProcessing}
                     >
@@ -170,7 +170,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
                     <span className={cn('px-1.5 py-0.5 rounded-full shrink-0 text-[10px] font-medium', getStatusColor(a.status))}>
                       {a.status.replace('_', ' ')}
                     </span>
-                    <span className="break-words min-w-0 text-foreground/80">{a.action_description}</span>
+                    <span className="break-words min-w-0 text-foreground/80 line-clamp-2">{a.action_description}</span>
                   </div>
                 ))}
               </div>
