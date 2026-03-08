@@ -111,6 +111,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5">
+          <QuotaStatusBar className="hidden lg:flex" />
           <NotificationCenter />
 
           <div className="w-px h-6 bg-border/40 mx-1" />
