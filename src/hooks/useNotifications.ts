@@ -44,7 +44,7 @@ export function useNotifications() {
         .limit(50);
 
       if (selectedCategory) {
-        query = query.eq('category', selectedCategory);
+        query = query.eq('category', selectedCategory as 'action_required' | 'agent_alert' | 'communication' | 'compliance' | 'decision_pending' | 'execution_complete' | 'execution_failed' | 'security' | 'system' | 'workflow');
       }
 
       const { data, error } = await query;
