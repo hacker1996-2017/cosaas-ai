@@ -81,7 +81,25 @@ export function useActionPipeline() {
     },
   });
 
-  // Approve action
+  // Dispatch an approved action to the execution engine
+  const dispatchAction = useMutation({
+    mutationFn: async (actionId: string) => {
+      const { data, error } = await supabase.functions.invoke('dispatch-action', {
+        body: { actionId },
+      });
+      if (error) throw new Error(error.message || 'Dispatch failed');
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['action_pipeline', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['commands', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['timeline_events', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['agents', user?.id] });
+    },
+  });
+
+  // Approve action → then auto-dispatch
   const approveAction = useMutation({
     mutationFn: async ({ actionId, notes }: { actionId: string; notes?: string }) => {
       const { data, error } = await supabase
@@ -98,6 +116,15 @@ export function useActionPipeline() {
 
       if (error) throw error;
       return data;
+    },
+    onSuccess: async (data) => {
+      // Auto-dispatch after approval
+      try {
+        await dispatchAction.mutateAsync(data.id);
+      } catch (err) {
+        console.error('Auto-dispatch failed:', err);
+        // Action is still approved — can be retried manually
+      }
     },
   });
 
@@ -119,6 +146,29 @@ export function useActionPipeline() {
     },
   });
 
+  // Manual retry for failed actions
+  const retryAction = useMutation({
+    mutationFn: async (actionId: string) => {
+      // Reset to approved so dispatcher picks it up
+      const { error } = await supabase
+        .from('action_pipeline')
+        .update({
+          status: 'approved',
+          error_message: null,
+          execution_started_at: null,
+          execution_completed_at: null,
+          execution_result: null,
+          dispatched_at: null,
+        })
+        .eq('id', actionId);
+
+      if (error) throw error;
+
+      // Then dispatch
+      return dispatchAction.mutateAsync(actionId);
+    },
+  });
+
   const pendingApproval = actions?.filter(a => a.status === 'pending_approval') || [];
   const inProgress = actions?.filter(a => ['created', 'policy_evaluating', 'dispatched', 'executing'].includes(a.status)) || [];
   const completed = actions?.filter(a => a.status === 'completed') || [];
@@ -130,8 +180,12 @@ export function useActionPipeline() {
     error,
     approveAction: approveAction.mutateAsync,
     rejectAction: rejectAction.mutateAsync,
+    dispatchAction: dispatchAction.mutateAsync,
+    retryAction: retryAction.mutateAsync,
     isApproving: approveAction.isPending,
     isRejecting: rejectAction.isPending,
+    isDispatching: dispatchAction.isPending,
+    isRetrying: retryAction.isPending,
     stats: {
       pendingApproval: pendingApproval.length,
       inProgress: inProgress.length,
