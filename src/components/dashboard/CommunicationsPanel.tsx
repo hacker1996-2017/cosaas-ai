@@ -113,6 +113,23 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
     } catch { toast.error('Failed to create email'); }
   };
 
+  const handleCreateAndSendEmail = async () => {
+    if (!newEmail.to || !newEmail.subject) { toast.error('To address and subject are required'); return; }
+    try {
+      const created = await createEmail({
+        to_addresses: [newEmail.to.trim()], subject: newEmail.subject.trim(),
+        body_text: newEmail.body.trim(), from_address: newEmail.from.trim(), status: 'draft',
+      });
+      if (created?.id) {
+        await sendEmail(created.id);
+        toast.success('Email sent!');
+      }
+      setIsEmailDialogOpen(false);
+      setNewEmail({ to: '', subject: '', body: '', from: 'ceo@company.com' });
+      setAiContext('');
+    } catch { toast.error('Failed to send email'); }
+  };
+
   const handleLogCall = async () => {
     if (!newCall.callee_number) { toast.error('Phone number is required'); return; }
     try {
@@ -253,9 +270,13 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEmailDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateEmail} disabled={emailCreating}>
-                  {emailCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                <Button variant="secondary" onClick={handleCreateEmail} disabled={emailCreating || emailSending}>
+                  {emailCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mail className="w-4 h-4 mr-2" />}
                   Save Draft
+                </Button>
+                <Button onClick={handleCreateAndSendEmail} disabled={emailCreating || emailSending}>
+                  {emailSending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                  Send Now
                 </Button>
               </div>
             </DialogContent>
