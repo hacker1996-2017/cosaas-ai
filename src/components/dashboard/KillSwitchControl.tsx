@@ -83,7 +83,7 @@ export function KillSwitchControl({ className }: KillSwitchControlProps) {
         <Button
           variant={killSwitchActive ? 'default' : 'destructive'}
           size="sm"
-          className="w-full h-8 text-xs font-semibold"
+          className="w-full min-h-8 h-auto py-1.5 text-[11px] leading-tight font-semibold whitespace-normal break-words"
           onClick={toggleKillSwitch}
           disabled={isToggling}
         >

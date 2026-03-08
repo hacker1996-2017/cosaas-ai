@@ -145,7 +145,7 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
                     >
                       {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3 mr-1" />Reject</>}
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 px-2">
+                    <Button size="sm" variant="outline" className="h-auto min-h-7 px-2 py-1 shrink-0">
                       <Pencil className="w-3 h-3" />
                     </Button>
                   </div>

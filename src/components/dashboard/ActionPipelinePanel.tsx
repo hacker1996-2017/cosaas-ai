@@ -132,7 +132,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
                       {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Approve</>}
                     </Button>
                     <Button
-                      size="sm" variant="destructive" className="flex-1 h-7 text-[11px] font-semibold"
+                      size="sm" variant="destructive" className="flex-1 min-w-0 h-auto min-h-7 py-1 text-[10px] leading-tight font-semibold whitespace-normal break-words"
                       onClick={() => handleReject(action.id)}
                       disabled={isRejecting || isProcessing}
                     >
