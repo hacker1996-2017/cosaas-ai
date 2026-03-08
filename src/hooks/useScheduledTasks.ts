@@ -109,25 +109,27 @@ export function useScheduledTasks() {
 
       if (!profile?.organization_id) throw new Error('No organization');
 
+      const insertData = {
+        organization_id: profile.organization_id,
+        created_by: user.id,
+        name: taskData.name || 'Untitled Task',
+        description: taskData.description,
+        task_type: taskData.task_type || 'command',
+        task_config: taskData.task_config || {},
+        frequency: taskData.frequency || 'once' as const,
+        cron_expression: taskData.cron_expression,
+        timezone: taskData.timezone || 'UTC',
+        scheduled_at: taskData.scheduled_at || new Date().toISOString(),
+        next_run_at: taskData.next_run_at || taskData.scheduled_at || new Date().toISOString(),
+        agent_id: taskData.agent_id,
+        priority: taskData.priority || 5,
+        max_retries: taskData.max_retries || 3,
+        tags: taskData.tags || [],
+      };
+
       const { data, error } = await supabase
         .from('scheduled_tasks')
-        .insert({
-          organization_id: profile.organization_id,
-          created_by: user.id,
-          name: taskData.name || 'Untitled Task',
-          description: taskData.description,
-          task_type: taskData.task_type || 'command',
-          task_config: taskData.task_config || {},
-          frequency: taskData.frequency || 'once',
-          cron_expression: taskData.cron_expression,
-          timezone: taskData.timezone || 'UTC',
-          scheduled_at: taskData.scheduled_at || new Date().toISOString(),
-          next_run_at: taskData.next_run_at || taskData.scheduled_at || new Date().toISOString(),
-          agent_id: taskData.agent_id,
-          priority: taskData.priority || 5,
-          max_retries: taskData.max_retries || 3,
-          tags: taskData.tags || [],
-        } as Record<string, unknown>)
+        .insert(insertData)
         .select()
         .single();
 
