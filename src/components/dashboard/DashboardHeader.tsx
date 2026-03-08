@@ -20,6 +20,7 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ className }: DashboardHeaderProps) {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { organization } = useOrganization();
 
