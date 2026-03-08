@@ -11,6 +11,7 @@ import OrganizationSetup from "./pages/OrganizationSetup";
 import ClientChat from "./pages/ClientChat";
 import AcceptInvite from "./pages/AcceptInvite";
 import Settings from "./pages/Settings";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
