@@ -13,6 +13,7 @@ import { AuditLogPanel } from './AuditLogPanel';
 import { KillSwitchControl } from './KillSwitchControl';
 import { CommunicationsPanel } from './CommunicationsPanel';
 import { AgentSchedulerPanel } from './AgentSchedulerPanel';
+import { UserManagementPanel } from './UserManagementPanel';
 import { LeftSidebar } from './layout/LeftSidebar';
 import { MainCommandCenter } from './layout/MainCommandCenter';
 import { RightPanel } from './layout/RightPanel';
