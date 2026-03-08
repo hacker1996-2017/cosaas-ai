@@ -21,6 +21,208 @@ interface WorkflowStep {
   max_retries: number
 }
 
+interface AIReasoning {
+  interpretation: string
+  approach: string
+  enrichedParams: Record<string, unknown>
+  riskAssessment: string
+  confidence: number
+}
+
+// ─── AI Reasoning Layer ─────────────────────────────────────────────────────
+// Before each step executes, AI reads the step definition, interprets context,
+// reasons about approach, and enriches execution params.
+async function aiReasonAboutStep(
+  step: WorkflowStep,
+  workflowName: string,
+  workflowDescription: string | null,
+  previousStepOutputs: Array<{ stepName: string; output: Record<string, unknown>; status: string }>,
+  orgContext: Record<string, unknown>,
+  agentInstructions: string | null,
+  supabaseUrl: string,
+): Promise<AIReasoning> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
+  if (!lovableApiKey) {
+    return {
+      interpretation: `Execute step "${step.name}" as configured.`,
+      approach: 'direct_execution',
+      enrichedParams: step.action_config || {},
+      riskAssessment: 'low — no AI reasoning available',
+      confidence: 0.5,
+    }
+  }
+
+  const contextChain = previousStepOutputs.map(p =>
+    `Step "${p.stepName}" → ${p.status}: ${JSON.stringify(p.output).substring(0, 300)}`
+  ).join('\n')
+
+  const systemPrompt = `You are an AI workflow execution agent inside an enterprise OS.
+Your job: analyze each workflow step BEFORE execution, reason about the best approach,
+and enrich the execution parameters using context from previous steps.
+
+RULES:
+- Always output valid JSON
+- If a previous step produced data (client_id, email_id, etc.), wire it into this step's params
+- Assess risk honestly
+- If agent instructions exist, follow them strictly
+- Confidence: 0.0 = uncertain, 1.0 = certain this will succeed`
+
+  const userPrompt = `## Workflow: "${workflowName}"
+${workflowDescription ? `Description: ${workflowDescription}` : ''}
+
+## Current Step (#${step.step_number}): "${step.name}"
+- Action Type: ${step.action_type}
+- Description: ${step.description || 'None'}
+- Current Config: ${JSON.stringify(step.action_config)}
+
+## Agent Instructions
+${agentInstructions || 'No specific instructions.'}
+
+## Previous Step Results (context chain)
+${contextChain || 'This is the first step — no prior context.'}
+
+## Organization Context
+${JSON.stringify(orgContext).substring(0, 500)}
+
+Respond with this exact JSON structure:
+{
+  "interpretation": "What this step means in plain language",
+  "approach": "How you plan to execute this (e.g., 'send_email_with_draft', 'update_client_status', 'generate_ai_report')",
+  "enrichedParams": { ...original config merged with context from previous steps... },
+  "riskAssessment": "Your honest assessment of risk",
+  "confidence": 0.85
+}`
+
+  try {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+      }),
+    })
+
+    if (!aiResponse.ok) {
+      console.error('AI reasoning failed:', aiResponse.status)
+      return {
+        interpretation: `Execute "${step.name}" with configured params.`,
+        approach: 'direct_execution',
+        enrichedParams: step.action_config || {},
+        riskAssessment: 'unknown — AI unavailable',
+        confidence: 0.5,
+      }
+    }
+
+    const aiData = await aiResponse.json()
+    let content = aiData.choices?.[0]?.message?.content || ''
+
+    // Parse JSON from response (handle markdown code blocks)
+    content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+    const parsed = JSON.parse(content) as AIReasoning
+
+    return {
+      interpretation: parsed.interpretation || `Execute step: ${step.name}`,
+      approach: parsed.approach || 'direct_execution',
+      enrichedParams: { ...(step.action_config || {}), ...(parsed.enrichedParams || {}) },
+      riskAssessment: parsed.riskAssessment || 'not assessed',
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
+    }
+  } catch (err) {
+    console.error('AI reasoning parse error:', err)
+    return {
+      interpretation: `Execute "${step.name}" as configured.`,
+      approach: 'direct_execution',
+      enrichedParams: step.action_config || {},
+      riskAssessment: 'fallback — AI response not parseable',
+      confidence: 0.5,
+    }
+  }
+}
+
+// ─── AI Workflow Generation ─────────────────────────────────────────────────
+async function generateWorkflowFromNL(
+  prompt: string,
+  agents: Array<{ id: string; name: string; role: string; emoji: string }>,
+  supabaseUrl: string,
+): Promise<{
+  name: string
+  description: string
+  trigger_type: string
+  steps: Array<{
+    name: string
+    description: string
+    action_type: string
+    action_config: Record<string, unknown>
+    agent_id: string | null
+  }>
+} | null> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
+  if (!lovableApiKey) return null
+
+  const agentList = agents.map(a => `- ${a.emoji} ${a.name} (ID: ${a.id}, Role: ${a.role})`).join('\n')
+
+  const systemPrompt = `You are a workflow architect for an AI-powered executive OS.
+Given a natural language description, generate a structured workflow with concrete, executable steps.
+
+Available action types:
+- send_email: Send an email (params: to, subject, body, client_id)
+- update_client: Update client record (params: client_id, updates: {status, mrr, tags, next_follow_up})
+- create_task: Create a task (params: client_id, title, description, priority, due_date)
+- generate_report: AI-generated analysis (params: report_type, scope, metrics)
+- notification: Send internal notification (params: title, body, priority, user_id)
+- ai_analysis: Run AI analysis (params: analysis_type, data_scope, question)
+- api_call: External API call (params: url, method, headers, body)
+- approval_gate: Pause for human approval (params: approval_message, risk_level)
+- data_update: Generic data mutation (params: table, operation, data)
+
+Available agents:
+${agentList || 'No agents configured — use null for agent_id.'}
+
+Trigger types: manual, on_client_created, on_email_received, on_schedule, on_event
+
+RULES:
+- Each step MUST have meaningful action_config params
+- Assign the most relevant agent to each step
+- Include approval_gate steps for high-risk operations
+- Output ONLY valid JSON, no markdown`
+
+  try {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Create a workflow for: "${prompt}"\n\nRespond with JSON: { "name": "...", "description": "...", "trigger_type": "...", "steps": [{ "name": "...", "description": "...", "action_type": "...", "action_config": {...}, "agent_id": "..." or null }] }` },
+        ],
+        temperature: 0.4,
+      }),
+    })
+
+    if (!aiResponse.ok) return null
+
+    const aiData = await aiResponse.json()
+    let content = aiData.choices?.[0]?.message?.content || ''
+    content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+    return JSON.parse(content)
+  } catch (err) {
+    console.error('Workflow generation failed:', err)
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -54,7 +256,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { action, workflowId, stepId } = body
+    const { action, workflowId, stepId, prompt } = body
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -74,7 +276,97 @@ Deno.serve(async (req) => {
 
     const orgId = profile.organization_id
 
-    // ── ACTION: execute — Run entire workflow step-by-step ──────────────────
+    // ── ACTION: generate — AI creates a workflow from natural language ──────
+    if (action === 'generate') {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: 'prompt is required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Fetch available agents
+      const { data: agents } = await adminClient
+        .from('agents')
+        .select('id, name, role, emoji')
+        .eq('organization_id', orgId)
+
+      const generated = await generateWorkflowFromNL(prompt, agents || [], supabaseUrl)
+
+      if (!generated) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate workflow from description' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Create workflow
+      const { data: workflow, error: wfError } = await adminClient
+        .from('workflows')
+        .insert({
+          organization_id: orgId,
+          created_by: user.id,
+          name: generated.name,
+          description: generated.description,
+          trigger_type: generated.trigger_type || 'manual',
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (wfError || !workflow) {
+        return new Response(
+          JSON.stringify({ error: wfError?.message || 'Failed to create workflow' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Create steps
+      if (generated.steps?.length > 0) {
+        const stepsToInsert = generated.steps.map((step, index) => ({
+          workflow_id: workflow.id,
+          name: step.name,
+          description: step.description || null,
+          action_type: step.action_type,
+          action_config: step.action_config || {},
+          step_number: index + 1,
+          agent_id: step.agent_id || null,
+          ai_assist_available: true,
+        }))
+
+        await adminClient.from('workflow_steps').insert(stepsToInsert)
+      }
+
+      // Audit
+      const prevHash = await getLatestHash(adminClient, orgId)
+      const seqNum = await getNextSequence(adminClient, orgId)
+      const eventHash = generateHash(orgId, 'workflow_generation', 'ai_generate', { prompt, steps: generated.steps?.length }, prevHash, new Date())
+
+      await adminClient.from('audit_log').insert({
+        organization_id: orgId,
+        sequence_number: seqNum,
+        event_type: 'workflow_generation',
+        actor_id: user.id,
+        actor_type: 'user',
+        resource_type: 'workflow',
+        resource_id: workflow.id,
+        action: 'ai_generate',
+        details: { prompt, generated_name: generated.name, steps_count: generated.steps?.length || 0 },
+        previous_hash: prevHash,
+        event_hash: eventHash,
+      })
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          workflow: { ...workflow, steps: generated.steps },
+          generated,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ── ACTION: execute — Run entire workflow with AI reasoning ─────────────
     if (action === 'execute') {
       if (!workflowId) {
         return new Response(
@@ -101,7 +393,7 @@ Deno.serve(async (req) => {
       // Check kill switch
       const { data: org } = await adminClient
         .from('organizations')
-        .select('kill_switch_active')
+        .select('kill_switch_active, autonomy_level, industry, market')
         .eq('id', orgId)
         .single()
 
@@ -126,13 +418,13 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Reset all steps to not_started
+      // Reset all steps
       await adminClient
         .from('workflow_steps')
         .update({ status: 'not_started', retry_count: 0 })
         .eq('workflow_id', workflowId)
 
-      // Create a parent command for the workflow execution
+      // Create parent command
       const { data: command } = await adminClient
         .from('commands')
         .insert({
@@ -142,7 +434,7 @@ Deno.serve(async (req) => {
           status: 'in_progress',
           started_at: new Date().toISOString(),
           parsed_intent: {
-            primaryIntent: `Executing workflow "${workflow.name}" with ${steps.length} steps`,
+            primaryIntent: `Executing workflow "${workflow.name}" with ${steps.length} steps (AI-reasoned)`,
             category: 'workflow',
             entities: [],
             suggestedAgents: [],
@@ -155,7 +447,14 @@ Deno.serve(async (req) => {
         .select()
         .single()
 
-      // Execute steps sequentially
+      // Org context for AI reasoning
+      const orgContext = {
+        industry: org?.industry || 'general',
+        market: org?.market || 'global',
+        autonomy_level: org?.autonomy_level || 'draft_actions',
+      }
+
+      // Execute steps sequentially with AI reasoning + context chaining
       const stepResults: Array<{
         stepId: string
         stepName: string
@@ -164,13 +463,16 @@ Deno.serve(async (req) => {
         actionPipelineId?: string
         duration_ms: number
         error?: string
+        aiReasoning?: AIReasoning
+        output?: Record<string, unknown>
       }> = []
+
+      const previousOutputs: Array<{ stepName: string; output: Record<string, unknown>; status: string }> = []
 
       let workflowFailed = false
 
       for (const step of steps as WorkflowStep[]) {
         if (workflowFailed) {
-          // Mark remaining steps as cancelled
           await adminClient
             .from('workflow_steps')
             .update({ status: 'failed' })
@@ -189,13 +491,41 @@ Deno.serve(async (req) => {
 
         const stepStart = Date.now()
 
-        // Mark step as in_progress
+        // Mark as in_progress
         await adminClient
           .from('workflow_steps')
           .update({ status: 'in_progress' })
           .eq('id', step.id)
 
-        // Create action_pipeline entry for this step
+        // ── AI REASONING PHASE ──────────────────────────────────────────────
+        // Fetch agent instructions if assigned
+        let agentInstructions: string | null = null
+        if (step.agent_id) {
+          const { data: instructions } = await adminClient
+            .from('agent_instructions')
+            .select('instructions')
+            .eq('agent_id', step.agent_id)
+            .eq('is_active', true)
+            .order('priority', { ascending: false })
+            .limit(1)
+            .single()
+
+          agentInstructions = instructions?.instructions || null
+        }
+
+        const reasoning = await aiReasonAboutStep(
+          step,
+          workflow.name,
+          workflow.description,
+          previousOutputs,
+          orgContext,
+          agentInstructions,
+          supabaseUrl,
+        )
+
+        console.log(`[Workflow ${workflow.name}] Step ${step.step_number} AI reasoning:`, JSON.stringify(reasoning))
+
+        // ── EXECUTION PHASE ─────────────────────────────────────────────────
         const actionCategory = mapActionType(step.action_type)
         const { data: pipelineAction, error: pipelineError } = await adminClient
           .from('action_pipeline')
@@ -206,17 +536,20 @@ Deno.serve(async (req) => {
             created_by: user.id,
             category: actionCategory,
             action_type: step.action_type,
-            action_description: `[${workflow.name}] Step ${step.step_number}: ${step.name}`,
+            action_description: `[${workflow.name}] Step ${step.step_number}: ${step.name} — ${reasoning.interpretation}`,
             action_params: {
-              workflow_id: workflowId,
-              workflow_name: workflow.name,
-              step_id: step.id,
-              step_number: step.step_number,
-              ...(step.action_config || {}),
+              ...reasoning.enrichedParams,
+              _ai_reasoning: {
+                interpretation: reasoning.interpretation,
+                approach: reasoning.approach,
+                risk: reasoning.riskAssessment,
+                confidence: reasoning.confidence,
+              },
+              _context_chain: previousOutputs.map(p => ({ step: p.stepName, status: p.status })),
             },
-            risk_level: 'low',
+            risk_level: reasoning.confidence < 0.5 ? 'high' : reasoning.confidence < 0.7 ? 'medium' : 'low',
             status: 'created',
-            requires_approval: false, // Workflow steps auto-execute
+            requires_approval: step.action_type === 'approval_gate' || reasoning.confidence < 0.4,
             idempotency_key: `wf-${workflowId}-step-${step.id}-${Date.now()}`,
           })
           .select()
@@ -236,11 +569,12 @@ Deno.serve(async (req) => {
             status: 'failed',
             duration_ms: Date.now() - stepStart,
             error: pipelineError?.message || 'Failed to create pipeline action',
+            aiReasoning: reasoning,
           })
           continue
         }
 
-        // Run policy evaluation
+        // Policy evaluation
         try {
           const evalResponse = await fetch(`${supabaseUrl}/functions/v1/evaluate-action`, {
             method: 'POST',
@@ -254,7 +588,6 @@ Deno.serve(async (req) => {
           if (evalResponse.ok) {
             const evalResult = await evalResponse.json()
 
-            // If blocked, mark step as failed
             if (evalResult.evaluation?.blocked) {
               workflowFailed = true
               await adminClient
@@ -270,12 +603,12 @@ Deno.serve(async (req) => {
                 actionPipelineId: pipelineAction.id,
                 duration_ms: Date.now() - stepStart,
                 error: evalResult.evaluation?.block_reason || 'Blocked by policy',
+                aiReasoning: reasoning,
               })
               continue
             }
 
-            // If requires approval, pause workflow (don't fail)
-            if (evalResult.status === 'pending_approval') {
+            if (evalResult.status === 'pending_approval' || step.action_type === 'approval_gate') {
               await adminClient
                 .from('workflow_steps')
                 .update({ status: 'in_progress' })
@@ -288,30 +621,26 @@ Deno.serve(async (req) => {
                 status: 'pending_approval',
                 actionPipelineId: pipelineAction.id,
                 duration_ms: Date.now() - stepStart,
+                aiReasoning: reasoning,
               })
 
-              // Pause — remaining steps wait for approval
-              workflowFailed = true // Stop executing further steps
+              workflowFailed = true
               continue
             }
-          } else {
-            const errText = await evalResponse.text()
-            console.error('Policy evaluation failed for step:', errText)
           }
         } catch (evalError) {
-          console.error('Error calling evaluate-action for step:', evalError)
+          console.error('Policy evaluation error for step:', evalError)
         }
 
-        // Dispatch the action
+        // Dispatch
         try {
-          // Auto-approve it first (workflow steps are pre-approved)
           await adminClient
             .from('action_pipeline')
             .update({
               status: 'approved',
               approved_by: user.id,
               approved_at: new Date().toISOString(),
-              approval_notes: `Auto-approved as part of workflow "${workflow.name}"`,
+              approval_notes: `Auto-approved. AI confidence: ${(reasoning.confidence * 100).toFixed(0)}%. Approach: ${reasoning.approach}`,
             })
             .eq('id', pipelineAction.id)
 
@@ -332,6 +661,9 @@ Deno.serve(async (req) => {
               .update({ status: 'completed' })
               .eq('id', step.id)
 
+            const output = dispatchResult.outputData || dispatchResult.evidence || {}
+            previousOutputs.push({ stepName: step.name, output, status: 'completed' })
+
             stepResults.push({
               stepId: step.id,
               stepName: step.name,
@@ -339,22 +671,17 @@ Deno.serve(async (req) => {
               status: 'completed',
               actionPipelineId: pipelineAction.id,
               duration_ms: Date.now() - stepStart,
+              aiReasoning: reasoning,
+              output,
             })
           } else {
-            // Check if retryable
             const retryable = (step.retry_count || 0) < (step.max_retries || 3)
-            if (retryable) {
-              await adminClient
-                .from('workflow_steps')
-                .update({ status: 'failed', retry_count: (step.retry_count || 0) + 1 })
-                .eq('id', step.id)
-            } else {
-              workflowFailed = true
-              await adminClient
-                .from('workflow_steps')
-                .update({ status: 'failed' })
-                .eq('id', step.id)
-            }
+            await adminClient
+              .from('workflow_steps')
+              .update({ status: 'failed', retry_count: (step.retry_count || 0) + 1 })
+              .eq('id', step.id)
+
+            previousOutputs.push({ stepName: step.name, output: { error: dispatchResult.error }, status: 'failed' })
 
             stepResults.push({
               stepId: step.id,
@@ -364,6 +691,7 @@ Deno.serve(async (req) => {
               actionPipelineId: pipelineAction.id,
               duration_ms: Date.now() - stepStart,
               error: dispatchResult.error || 'Dispatch failed',
+              aiReasoning: reasoning,
             })
 
             if (!retryable) workflowFailed = true
@@ -375,6 +703,8 @@ Deno.serve(async (req) => {
             .update({ status: 'failed' })
             .eq('id', step.id)
 
+          previousOutputs.push({ stepName: step.name, output: { error: (dispatchError as Error).message }, status: 'failed' })
+
           stepResults.push({
             stepId: step.id,
             stepName: step.name,
@@ -382,6 +712,7 @@ Deno.serve(async (req) => {
             status: 'failed',
             duration_ms: Date.now() - stepStart,
             error: (dispatchError as Error).message,
+            aiReasoning: reasoning,
           })
         }
       }
@@ -414,6 +745,8 @@ Deno.serve(async (req) => {
               steps_completed: stepResults.filter(s => s.status === 'completed').length,
               steps_failed: stepResults.filter(s => s.status === 'failed').length,
               steps_pending: stepResults.filter(s => s.status === 'pending_approval').length,
+              ai_reasoned: true,
+              context_chain_depth: previousOutputs.length,
             },
           })
           .eq('id', command.id)
@@ -426,7 +759,7 @@ Deno.serve(async (req) => {
           organization_id: orgId,
           event_type: 'ai_action',
           title: `Workflow ${allCompleted ? 'completed' : hasPending ? 'paused' : 'failed'}: ${workflow.name}`,
-          description: `${stepResults.filter(s => s.status === 'completed').length}/${steps.length} steps completed in ${totalDuration}ms.${hasPending ? ' Awaiting approval for next step.' : ''}`,
+          description: `${stepResults.filter(s => s.status === 'completed').length}/${steps.length} steps completed in ${totalDuration}ms. AI-reasoned execution with ${previousOutputs.length}-step context chain.`,
           command_id: command?.id,
           user_id: user.id,
           icon: allCompleted ? '🔄' : hasPending ? '⏸️' : '💥',
@@ -436,7 +769,7 @@ Deno.serve(async (req) => {
       // Audit log
       const prevHash = await getLatestHash(adminClient, orgId)
       const seqNum = await getNextSequence(adminClient, orgId)
-      const eventHash = generateHash(orgId, 'workflow_execution', 'execute', { workflowId, steps: steps.length }, prevHash, new Date())
+      const eventHash = generateHash(orgId, 'workflow_execution', 'execute', { workflowId, steps: steps.length, ai_reasoned: true }, prevHash, new Date())
 
       await adminClient
         .from('audit_log')
@@ -455,6 +788,13 @@ Deno.serve(async (req) => {
             completed: stepResults.filter(s => s.status === 'completed').length,
             failed: stepResults.filter(s => s.status === 'failed').length,
             duration_ms: totalDuration,
+            ai_reasoned: true,
+            reasoning_summary: stepResults.map(s => ({
+              step: s.stepName,
+              status: s.status,
+              confidence: s.aiReasoning?.confidence,
+              approach: s.aiReasoning?.approach,
+            })),
           },
           previous_hash: prevHash,
           event_hash: eventHash,
@@ -468,12 +808,14 @@ Deno.serve(async (req) => {
           status: allCompleted ? 'completed' : hasPending ? 'paused_approval' : 'failed',
           stepResults,
           duration_ms: totalDuration,
+          contextChainDepth: previousOutputs.length,
+          aiReasoned: true,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // ── ACTION: execute_step — Run a single step ───────────────────────────
+    // ── ACTION: execute_step — Run a single step with AI reasoning ──────────
     if (action === 'execute_step') {
       if (!stepId) {
         return new Response(
@@ -484,7 +826,7 @@ Deno.serve(async (req) => {
 
       const { data: step } = await adminClient
         .from('workflow_steps')
-        .select('*, workflows!inner(organization_id, name)')
+        .select('*, workflows!inner(organization_id, name, description)')
         .eq('id', stepId)
         .single()
 
@@ -495,7 +837,41 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Create and dispatch a single action for this step
+      const wfMeta = step.workflows as { organization_id: string; name: string; description: string | null }
+
+      // Get org context
+      const { data: org } = await adminClient
+        .from('organizations')
+        .select('industry, market, autonomy_level')
+        .eq('id', orgId)
+        .single()
+
+      // Get agent instructions
+      let agentInstructions: string | null = null
+      if (step.agent_id) {
+        const { data: instructions } = await adminClient
+          .from('agent_instructions')
+          .select('instructions')
+          .eq('agent_id', step.agent_id)
+          .eq('is_active', true)
+          .order('priority', { ascending: false })
+          .limit(1)
+          .single()
+        agentInstructions = instructions?.instructions || null
+      }
+
+      // AI Reasoning
+      const reasoning = await aiReasonAboutStep(
+        step as WorkflowStep,
+        wfMeta.name,
+        wfMeta.description,
+        [], // No prior context for single step execution
+        { industry: org?.industry, market: org?.market, autonomy_level: org?.autonomy_level },
+        agentInstructions,
+        supabaseUrl,
+      )
+
+      // Create and dispatch action
       const { data: pipelineAction } = await adminClient
         .from('action_pipeline')
         .insert({
@@ -504,13 +880,22 @@ Deno.serve(async (req) => {
           created_by: user.id,
           category: mapActionType(step.action_type),
           action_type: step.action_type,
-          action_description: `[${(step.workflows as { name: string }).name}] Step ${step.step_number}: ${step.name}`,
-          action_params: step.action_config || {},
-          risk_level: 'low',
+          action_description: `[${wfMeta.name}] Step ${step.step_number}: ${step.name} — ${reasoning.interpretation}`,
+          action_params: {
+            ...reasoning.enrichedParams,
+            _ai_reasoning: {
+              interpretation: reasoning.interpretation,
+              approach: reasoning.approach,
+              risk: reasoning.riskAssessment,
+              confidence: reasoning.confidence,
+            },
+          },
+          risk_level: reasoning.confidence < 0.5 ? 'high' : 'low',
           status: 'approved',
           requires_approval: false,
           approved_by: user.id,
           approved_at: new Date().toISOString(),
+          approval_notes: `AI confidence: ${(reasoning.confidence * 100).toFixed(0)}%`,
           idempotency_key: `wf-step-${stepId}-${Date.now()}`,
         })
         .select()
@@ -546,13 +931,14 @@ Deno.serve(async (req) => {
           stepId,
           actionPipelineId: pipelineAction.id,
           result: dispatchResult,
+          aiReasoning: reasoning,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     return new Response(
-      JSON.stringify({ error: 'Invalid action. Use: execute, execute_step' }),
+      JSON.stringify({ error: 'Invalid action. Use: execute, execute_step, generate' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
