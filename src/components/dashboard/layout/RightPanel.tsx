@@ -56,7 +56,7 @@ export function RightPanel({ children, className }: RightPanelProps) {
     <aside
       className={cn(
         'border-l border-border transition-all duration-300 relative flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden md:justify-self-start',
-        collapsed ? 'md:w-10' : 'w-full md:w-[clamp(290px,30vw,420px)] lg:w-[clamp(310px,30vw,440px)]',
+        collapsed ? 'md:w-10' : 'w-full md:w-[clamp(320px,33vw,460px)] lg:w-[clamp(340px,33vw,480px)]',
         className
       )}
     >
@@ -74,7 +74,7 @@ export function RightPanel({ children, className }: RightPanelProps) {
       {/* Panel content */}
       {!collapsed && (
         <ScrollArea className="h-full flex-1 min-w-0">
-          <div className="p-3 pt-10 space-y-2 break-words overflow-wrap-anywhere min-w-0 max-w-full overflow-x-hidden [&>*]:w-full [&>*]:max-w-full">{children}</div>
+          <div className="p-3 pt-10 space-y-2 break-words overflow-wrap-anywhere min-w-0 max-w-full overflow-x-hidden [&>*]:w-full [&>*]:max-w-full [&_button]:max-w-full [&_button]:truncate [&_p]:break-words [&_span]:break-words">{children}</div>
         </ScrollArea>
       )}
     </aside>
