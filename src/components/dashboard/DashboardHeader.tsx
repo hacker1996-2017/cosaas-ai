@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { NotificationCenter } from './NotificationCenter';
 import { CommandPalette } from './CommandPalette';
+import { QuotaStatusBar } from './QuotaStatusBar';
+import { OrgSwitcher } from './OrgSwitcher';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
