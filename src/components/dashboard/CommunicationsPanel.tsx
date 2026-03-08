@@ -113,6 +113,23 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
     } catch { toast.error('Failed to create email'); }
   };
 
+  const handleCreateAndSendEmail = async () => {
+    if (!newEmail.to || !newEmail.subject) { toast.error('To address and subject are required'); return; }
+    try {
+      const created = await createEmail({
+        to_addresses: [newEmail.to.trim()], subject: newEmail.subject.trim(),
+        body_text: newEmail.body.trim(), from_address: newEmail.from.trim(), status: 'draft',
+      });
+      if (created?.id) {
+        await sendEmail(created.id);
+        toast.success('Email sent!');
+      }
+      setIsEmailDialogOpen(false);
+      setNewEmail({ to: '', subject: '', body: '', from: 'ceo@company.com' });
+      setAiContext('');
+    } catch { toast.error('Failed to send email'); }
+  };
+
   const handleLogCall = async () => {
     if (!newCall.callee_number) { toast.error('Phone number is required'); return; }
     try {
