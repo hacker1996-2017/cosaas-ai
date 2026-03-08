@@ -511,7 +511,12 @@ Deno.serve(async (req) => {
     try {
       switch (action.category) {
         case 'communication':
-          result = await executeSendEmail(ctx)
+          // Check if it's a voice action
+          if (ctx.action.action_type.includes('call') || ctx.action.action_type.includes('voice')) {
+            result = await executeVoiceCall(ctx)
+          } else {
+            result = await executeSendEmail(ctx)
+          }
           break
         case 'data_mutation':
         case 'financial':
@@ -522,15 +527,10 @@ Deno.serve(async (req) => {
           result = await executeReporting(ctx)
           break
         case 'integration':
-          // Future: route to integration executors
-          result = {
-            success: true,
-            evidence: { note: 'Integration action logged for manual processing', action_type: action.action_type },
-            outputData: { manual_followup: true },
-          }
+          result = await executeIntegrationSync(ctx)
           break
         default:
-          result = await executeDataMutation(ctx) // Default to data mutation handler
+          result = await executeDataMutation(ctx)
           break
       }
     } catch (execError) {
