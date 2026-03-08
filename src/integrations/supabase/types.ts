@@ -1503,6 +1503,90 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          agent_id: string | null
+          body: string | null
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          dismissed_at: string | null
+          expires_at: string | null
+          icon: string | null
+          id: string
+          is_dismissed: boolean
+          is_read: boolean
+          metadata: Json | null
+          organization_id: string
+          priority: Database["public"]["Enums"]["notification_priority"]
+          read_at: string | null
+          source_id: string | null
+          source_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          agent_id?: string | null
+          body?: string | null
+          category?: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          dismissed_at?: string | null
+          expires_at?: string | null
+          icon?: string | null
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          organization_id: string
+          priority?: Database["public"]["Enums"]["notification_priority"]
+          read_at?: string | null
+          source_id?: string | null
+          source_type?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          agent_id?: string | null
+          body?: string | null
+          category?: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          dismissed_at?: string | null
+          expires_at?: string | null
+          icon?: string | null
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          organization_id?: string
+          priority?: Database["public"]["Enums"]["notification_priority"]
+          read_at?: string | null
+          source_id?: string | null
+          source_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           actions_this_hour: number
@@ -2241,6 +2325,18 @@ export type Database = {
         | "lapsed"
         | "renewed"
       integration_status: "connected" | "disconnected" | "error" | "pending"
+      notification_category:
+        | "action_required"
+        | "decision_pending"
+        | "execution_complete"
+        | "execution_failed"
+        | "agent_alert"
+        | "system"
+        | "workflow"
+        | "communication"
+        | "security"
+        | "compliance"
+      notification_priority: "low" | "normal" | "high" | "critical"
       premium_status:
         | "due"
         | "paid"
@@ -2464,6 +2560,19 @@ export const Constants = {
         "renewed",
       ],
       integration_status: ["connected", "disconnected", "error", "pending"],
+      notification_category: [
+        "action_required",
+        "decision_pending",
+        "execution_complete",
+        "execution_failed",
+        "agent_alert",
+        "system",
+        "workflow",
+        "communication",
+        "security",
+        "compliance",
+      ],
+      notification_priority: ["low", "normal", "high", "critical"],
       premium_status: [
         "due",
         "paid",
