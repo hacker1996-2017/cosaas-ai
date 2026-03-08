@@ -35,11 +35,11 @@ const riskBadgeClass: Record<RiskLevel, string> = {
 };
 
 const statusColors: Record<ClientStatus, string> = {
-  prospect: 'bg-blue-500/20 text-blue-400',
-  onboarding: 'bg-yellow-500/20 text-yellow-400',
-  active: 'bg-green-500/20 text-green-400',
-  paused: 'bg-gray-500/20 text-gray-400',
-  churned: 'bg-red-500/20 text-red-400',
+  prospect: 'bg-primary/15 text-primary border border-primary/20',
+  onboarding: 'badge-warning',
+  active: 'badge-success',
+  paused: 'bg-secondary/60 text-muted-foreground border border-border/30',
+  churned: 'badge-danger',
 };
 
 interface InternalCRMProps {
