@@ -300,6 +300,10 @@ export function useReportingData() {
     revenueTrend,
     commandVelocity,
     decisionAnalytics,
+    rawClients: clients || [],
+    rawPolicies: policies || [],
+    rawPremiums: premiums || [],
+    rawCommissions: commissions || [],
     isLoading: !clients && !agents,
   };
 }
