@@ -62,7 +62,7 @@ export default function ResetPassword() {
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
         <Card className="w-full max-w-md bg-card/50 backdrop-blur border-border text-center">
           <CardContent className="pt-8 pb-8 space-y-4">
-            <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
+            <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
             <h2 className="text-xl font-semibold">Password Updated</h2>
             <p className="text-sm text-muted-foreground">You can now sign in with your new password.</p>
             <Button onClick={() => navigate('/')} className="w-full">Go to Dashboard</Button>
