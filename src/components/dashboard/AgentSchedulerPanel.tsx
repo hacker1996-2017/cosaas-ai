@@ -217,12 +217,58 @@ export function AgentSchedulerPanel() {
                 </SelectContent>
               </Select>
             </div>
-            <Textarea
-              placeholder='Task config (JSON)...'
-              value={newTask.task_config}
-              onChange={e => setNewTask(p => ({ ...p, task_config: e.target.value }))}
-              className="min-h-[40px] text-xs font-mono bg-background/50"
-            />
+            {/* Type-specific config fields */}
+            {newTask.task_type === 'command' && (
+              <Input
+                placeholder="Command text (e.g. 'Send weekly report to all clients')"
+                value={newTask.command_text}
+                onChange={e => setNewTask(p => ({ ...p, command_text: e.target.value }))}
+                className="h-8 text-xs bg-background/50"
+              />
+            )}
+            {newTask.task_type === 'action_pipeline' && (
+              <div className="space-y-2">
+                <Input
+                  placeholder="Action type (e.g. email_send, crm_update)"
+                  value={newTask.action_type}
+                  onChange={e => setNewTask(p => ({ ...p, action_type: e.target.value }))}
+                  className="h-8 text-xs bg-background/50"
+                />
+                <Input
+                  placeholder="Action description"
+                  value={newTask.action_description}
+                  onChange={e => setNewTask(p => ({ ...p, action_description: e.target.value }))}
+                  className="h-8 text-xs bg-background/50"
+                />
+              </div>
+            )}
+            {newTask.task_type === 'notification' && (
+              <div className="space-y-2">
+                <Input
+                  placeholder="Notification title"
+                  value={newTask.notification_title}
+                  onChange={e => setNewTask(p => ({ ...p, notification_title: e.target.value }))}
+                  className="h-8 text-xs bg-background/50"
+                />
+                <Textarea
+                  placeholder="Notification body"
+                  value={newTask.notification_body}
+                  onChange={e => setNewTask(p => ({ ...p, notification_body: e.target.value }))}
+                  className="min-h-[40px] text-xs bg-background/50"
+                />
+              </div>
+            )}
+            {newTask.task_type === 'report' && (
+              <Select value={newTask.report_type} onValueChange={v => setNewTask(p => ({ ...p, report_type: v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Report type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general" className="text-xs">General</SelectItem>
+                  <SelectItem value="financial" className="text-xs">Financial</SelectItem>
+                  <SelectItem value="client_health" className="text-xs">Client Health</SelectItem>
+                  <SelectItem value="agent_performance" className="text-xs">Agent Performance</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex gap-2">
               <Button size="sm" className="h-7 text-xs flex-1" onClick={handleCreate} disabled={isCreating}>
                 {isCreating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
