@@ -127,9 +127,11 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
   const handleCreateAndSendEmail = async () => {
     if (!newEmail.to || !newEmail.subject) { toast.error('To address and subject are required'); return; }
+    const recipients = [newEmail.to.trim()];
+    if (isResendTestRecipientMismatch(newEmail.from, recipients)) { toast.error(resendTestModeMessage); return; }
     try {
       const created = await createEmail({
-        to_addresses: [newEmail.to.trim()], subject: newEmail.subject.trim(),
+        to_addresses: recipients, subject: newEmail.subject.trim(),
         body_text: newEmail.body.trim(), from_address: newEmail.from.trim(), status: 'draft',
       });
       if (created?.id) {
@@ -139,7 +141,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       setIsEmailDialogOpen(false);
       setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
       setAiContext('');
-    } catch { toast.error('Failed to send email'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to send email'); }
   };
 
   const handleLogCall = async () => {
