@@ -84,7 +84,7 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
         )}
       </div>
 
-      <div className="p-3 space-y-2.5">
+      <div className="p-3 space-y-2.5 overflow-hidden">
         {decisions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <Check className="w-6 h-6 text-exec-success mb-2 opacity-60" />
