@@ -204,6 +204,32 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
   const selectedMessages = selectedThread ? threadMap[selectedThread] || [] : [];
 
+  // Group emails into threads
+  const emailThreads = useMemo(() => {
+    const threads: Record<string, typeof emails> = {};
+    emails.forEach(email => {
+      const tid = email.thread_id || email.id;
+      if (!threads[tid]) threads[tid] = [];
+      threads[tid].push(email);
+    });
+    return Object.entries(threads)
+      .map(([tid, msgs]) => ({
+        id: tid,
+        emails: msgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+        latest: msgs.reduce((a, b) => new Date(a.created_at) > new Date(b.created_at) ? a : b),
+        replyCount: msgs.length - 1,
+        hasInbound: msgs.some(m => (m.metadata as Record<string, unknown>)?.direction === 'inbound'),
+      }))
+      .sort((a, b) => new Date(b.latest.created_at).getTime() - new Date(a.latest.created_at).getTime());
+  }, [emails]);
+
+  const selectedEmailThreadEmails = selectedEmailThread
+    ? (emailThreads.find(t => t.id === selectedEmailThread)?.emails || [])
+    : [];
+
+  const isInbound = (email: typeof emails[0]) =>
+    (email.metadata as Record<string, unknown>)?.direction === 'inbound';
+
   const riskColor = (risk: string) => {
     switch (risk) {
       case 'critical': return 'text-destructive';
