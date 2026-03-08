@@ -114,7 +114,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
                     <div className="flex items-start gap-2 flex-1 min-w-0">
                       <span className="shrink-0 text-sm">{getCategoryIcon(action.category)}</span>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-medium break-words leading-tight">{action.action_description}</p>
+                        <p className="text-[13px] font-medium break-words leading-tight line-clamp-2">{action.action_description}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">{action.action_type}</p>
                       </div>
                     </div>
