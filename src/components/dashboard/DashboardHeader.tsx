@@ -25,6 +25,19 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { organization } = useOrganization();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Global ⌘K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSignOut = async () => {
     try {
