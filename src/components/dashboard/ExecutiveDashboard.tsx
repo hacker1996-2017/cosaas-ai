@@ -13,6 +13,7 @@ import { AuditLogPanel } from './AuditLogPanel';
 import { KillSwitchControl } from './KillSwitchControl';
 import { CommunicationsPanel } from './CommunicationsPanel';
 import { AgentSchedulerPanel } from './AgentSchedulerPanel';
+import { UserManagementPanel } from './UserManagementPanel';
 import { LeftSidebar } from './layout/LeftSidebar';
 import { MainCommandCenter } from './layout/MainCommandCenter';
 import { RightPanel } from './layout/RightPanel';
@@ -35,7 +36,7 @@ export function ExecutiveDashboard() {
         {/* Right panel children are indexed by position — order matters for tab mapping:
             0: KillSwitch, 1: Industry, 2: ActionPipeline, 3: DecisionCenter,
             4: AuditLog, 5: EventTimeline, 6: Communications, 7: CRM,
-            8: Documents, 9: Workflows, 10: Integrations, 11: Scheduler */}
+            8: Documents, 9: Workflows, 10: Integrations, 11: Scheduler, 12: Team */}
         <RightPanel>
           <KillSwitchControl />
           <IndustryPanel />
@@ -49,6 +50,7 @@ export function ExecutiveDashboard() {
           <WorkflowsPanel />
           <IntegrationsPanel />
           <AgentSchedulerPanel />
+          <UserManagementPanel />
         </RightPanel>
       </div>
     </div>
