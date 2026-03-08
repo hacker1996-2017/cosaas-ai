@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Mail, Phone, Send, Loader2, Clock, CheckCircle, AlertCircle,
   PhoneCall, PhoneOff, MessageSquare, Copy, Inbox, Bot, User,
-  Sparkles, Reply, Eye, FileText
+  Sparkles, Reply, Eye, FileText, ArrowDownLeft, ArrowUpRight, MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
