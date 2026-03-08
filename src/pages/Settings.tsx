@@ -38,30 +38,40 @@ export default function Settings() {
   const { profile } = useUserProfile();
 
   // Profile state
-  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [timezone, setTimezone] = useState('UTC');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Org state
-  const [orgName, setOrgName] = useState(organization?.name || '');
-  const [industry, setIndustry] = useState(organization?.industry || '');
-  const [market, setMarket] = useState(organization?.market || '');
+  const [orgName, setOrgName] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [market, setMarket] = useState('');
   const [savingOrg, setSavingOrg] = useState(false);
 
   // Security
-  const [maxActions, setMaxActions] = useState(organization?.max_actions_per_hour?.toString() || '100');
-  const [maxConcurrent, setMaxConcurrent] = useState(organization?.max_concurrent_actions?.toString() || '10');
+  const [maxActions, setMaxActions] = useState('100');
+  const [maxConcurrent, setMaxConcurrent] = useState('10');
 
-  // Initialize from loaded data
-  useState(() => {
-    if (profile?.full_name) setFullName(profile.full_name);
-    if (organization?.name) setOrgName(organization.name);
-    if (organization?.industry) setIndustry(organization.industry);
-    if (organization?.market) setMarket(organization.market);
-    if (organization?.max_actions_per_hour) setMaxActions(organization.max_actions_per_hour.toString());
-    if (organization?.max_concurrent_actions) setMaxConcurrent(organization.max_concurrent_actions.toString());
-  });
+  // Hydrate profile data when loaded
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setPhone(profile.phone || '');
+      setTimezone(profile.timezone || 'UTC');
+    }
+  }, [profile]);
+
+  // Hydrate org data when loaded
+  useEffect(() => {
+    if (organization) {
+      setOrgName(organization.name || '');
+      setIndustry(organization.industry || '');
+      setMarket(organization.market || '');
+      setMaxActions(organization.max_actions_per_hour?.toString() || '100');
+      setMaxConcurrent(organization.max_concurrent_actions?.toString() || '10');
+    }
+  }, [organization]);
 
   const handleSaveProfile = async () => {
     if (!user) return;
