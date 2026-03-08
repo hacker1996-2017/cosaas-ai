@@ -66,8 +66,17 @@ export function useEmails(clientId?: string) {
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: { emailId },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        let message = 'Failed to send email';
+        try {
+          const errorBody = await (error as any).context?.json?.();
+          message = errorBody?.error || errorBody?.details?.message || message;
+        } catch {
+          message = error.message || message;
+        }
+        throw new Error(message);
+      }
+      if (data?.error) throw new Error(data?.details?.message || data.error);
       return data;
     },
     onSuccess: () => {

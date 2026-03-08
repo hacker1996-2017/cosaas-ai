@@ -16,6 +16,7 @@ import { useCalls } from '@/hooks/useCalls';
 import { useMessages, Message } from '@/hooks/useMessages';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIEmail } from '@/hooks/useAIEmail';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -31,6 +32,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const { calls, isLoading: callsLoading, createCall, isCreating: callCreating } = useCalls();
   const { messages, isLoading: messagesLoading, sendMessage, isSending: msgSending, unreadCount } = useMessages();
   const { organization } = useOrganization();
+  const { user } = useAuth();
   const { generateDraft, generateReply, summarizeEmail, isDrafting, isSummarizing } = useAIEmail();
 
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -47,6 +49,16 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const [newCall, setNewCall] = useState({
     callee_number: '', summary: '',
   });
+
+  const resendTestModeMessage = user?.email
+    ? `Resend test mode only sends to ${user.email}. Verify a domain to email others.`
+    : 'Resend test mode only sends to your account email. Verify a domain to email others.';
+
+  const isResendTestRecipientMismatch = (fromAddress: string, recipients: string[]) => {
+    if (fromAddress.trim().toLowerCase() !== 'onboarding@resend.dev' || !user?.email) return false;
+    const accountEmail = user.email.trim().toLowerCase();
+    return recipients.some((recipient) => recipient.trim().toLowerCase() !== accountEmail);
+  };
 
   const handleAIDraft = async () => {
     if (!newEmail.to || !newEmail.subject) {
@@ -115,9 +127,11 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
   const handleCreateAndSendEmail = async () => {
     if (!newEmail.to || !newEmail.subject) { toast.error('To address and subject are required'); return; }
+    const recipients = [newEmail.to.trim()];
+    if (isResendTestRecipientMismatch(newEmail.from, recipients)) { toast.error(resendTestModeMessage); return; }
     try {
       const created = await createEmail({
-        to_addresses: [newEmail.to.trim()], subject: newEmail.subject.trim(),
+        to_addresses: recipients, subject: newEmail.subject.trim(),
         body_text: newEmail.body.trim(), from_address: newEmail.from.trim(), status: 'draft',
       });
       if (created?.id) {
@@ -127,7 +141,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       setIsEmailDialogOpen(false);
       setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
       setAiContext('');
-    } catch { toast.error('Failed to send email'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to send email'); }
   };
 
   const handleLogCall = async () => {
@@ -470,8 +484,12 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                           className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
                           disabled={emailSending}
                           onClick={async () => {
+                            if (isResendTestRecipientMismatch(email.from_address, email.to_addresses || [])) {
+                              toast.error(resendTestModeMessage);
+                              return;
+                            }
                             try { await sendEmail(email.id); toast.success('Email sent!'); }
-                            catch { toast.error('Failed to send'); }
+                            catch (err: any) { toast.error(err.message || 'Failed to send'); }
                           }}
                         >
                           <Send className="w-2.5 h-2.5 mr-0.5" /> Send
