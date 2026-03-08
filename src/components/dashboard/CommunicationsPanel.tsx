@@ -32,6 +32,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const { calls, isLoading: callsLoading, createCall, isCreating: callCreating } = useCalls();
   const { messages, isLoading: messagesLoading, sendMessage, isSending: msgSending, unreadCount } = useMessages();
   const { organization } = useOrganization();
+  const { user } = useAuth();
   const { generateDraft, generateReply, summarizeEmail, isDrafting, isSummarizing } = useAIEmail();
 
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
