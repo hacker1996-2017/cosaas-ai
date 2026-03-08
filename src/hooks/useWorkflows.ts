@@ -238,6 +238,22 @@ export function useWorkflows() {
     },
   });
 
+  // AI Generate workflow from natural language
+  const generateWorkflow = useMutation({
+    mutationFn: async (prompt: string) => {
+      const { data, error } = await supabase.functions.invoke('execute-workflow', {
+        body: { action: 'generate', prompt },
+      });
+      if (error) throw new Error(error.message || 'Workflow generation failed');
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflows', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['audit_log', user?.id] });
+    },
+  });
+
   // Stats
   const activeWorkflows = workflows?.filter(w => w.is_active) || [];
   const totalExecutions = workflows?.reduce((sum, w) => sum + (w.execution_count || 0), 0) || 0;
@@ -254,9 +270,11 @@ export function useWorkflows() {
     deleteStep: deleteStep.mutateAsync,
     executeWorkflow: executeWorkflow.mutateAsync,
     executeStep: executeStep.mutateAsync,
+    generateWorkflow: generateWorkflow.mutateAsync,
     isCreating: createWorkflow.isPending,
     isExecuting: executeWorkflow.isPending,
     isExecutingStep: executeStep.isPending,
+    isGenerating: generateWorkflow.isPending,
     stats: {
       total: workflows?.length || 0,
       active: activeWorkflows.length,
