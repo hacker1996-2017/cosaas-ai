@@ -93,7 +93,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
         </div>
       </div>
 
-      <div className="p-3 space-y-2.5">
+      <div className="p-3 space-y-2.5 overflow-hidden">
         {actions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <Zap className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
