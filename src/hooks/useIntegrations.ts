@@ -72,18 +72,20 @@ export function useIntegrations(organizationId?: string) {
       config?: Record<string, unknown>;
       webhookUrl?: string;
     }) => {
+      const insertData: IntegrationInsert = {
+        organization_id: orgId!,
+        service_name: input.serviceName,
+        service_type: input.serviceType,
+        config: (input.config || {}) as any,
+        webhook_url: input.webhookUrl || null,
+        status: 'disconnected',
+        is_active: true,
+        sync_errors: 0,
+      };
+
       const { data, error } = await supabase
         .from('integrations')
-        .insert({
-          organization_id: orgId!,
-          service_name: input.serviceName,
-          service_type: input.serviceType,
-          config: input.config || {},
-          webhook_url: input.webhookUrl || null,
-          status: 'disconnected',
-          is_active: true,
-          sync_errors: 0,
-        } satisfies IntegrationInsert)
+        .insert(insertData)
         .select()
         .single();
 
