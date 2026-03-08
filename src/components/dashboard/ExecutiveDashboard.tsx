@@ -14,6 +14,7 @@ import { KillSwitchControl } from './KillSwitchControl';
 import { CommunicationsPanel } from './CommunicationsPanel';
 import { AgentSchedulerPanel } from './AgentSchedulerPanel';
 import { UserManagementPanel } from './UserManagementPanel';
+import { ReportingDashboard } from './ReportingDashboard';
 import { LeftSidebar } from './layout/LeftSidebar';
 import { MainCommandCenter } from './layout/MainCommandCenter';
 import { RightPanel } from './layout/RightPanel';
@@ -23,7 +24,6 @@ export function ExecutiveDashboard() {
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
       <DashboardHeader />
 
-      {/* 3-column grid: left agents | center command | right tabbed panels */}
       <div className="flex md:grid md:grid-cols-[220px_1fr_minmax(320px,420px)] flex-1 overflow-hidden min-w-0 w-full">
         <LeftSidebar>
           <AgentsSidebar />
@@ -33,10 +33,10 @@ export function ExecutiveDashboard() {
           <CommandCenter className="flex-1 panel m-2" />
         </MainCommandCenter>
 
-        {/* Right panel children are indexed by position — order matters for tab mapping:
+        {/* Right panel children indexed by position:
             0: KillSwitch, 1: Industry, 2: ActionPipeline, 3: DecisionCenter,
             4: AuditLog, 5: EventTimeline, 6: Communications, 7: CRM,
-            8: Documents, 9: Workflows, 10: Integrations, 11: Scheduler, 12: Team */}
+            8: Documents, 9: Workflows, 10: Integrations, 11: Scheduler, 12: Team, 13: Reports */}
         <RightPanel>
           <KillSwitchControl />
           <IndustryPanel />
@@ -51,6 +51,7 @@ export function ExecutiveDashboard() {
           <IntegrationsPanel />
           <AgentSchedulerPanel />
           <UserManagementPanel />
+          <ReportingDashboard />
         </RightPanel>
       </div>
     </div>
