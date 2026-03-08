@@ -20,4 +20,4 @@ export { AgentInstructionsPanel } from './AgentInstructionsPanel';
 export { CommunicationsPanel } from './CommunicationsPanel';
 export { InsuranceDashboard } from './InsuranceDashboard';
 export { ClientDetailView } from './ClientDetailView';
-export { DevOpsPanel } from './DevOpsPanel';
+export { DevOpsAgentView } from './DevOpsAgentView';
