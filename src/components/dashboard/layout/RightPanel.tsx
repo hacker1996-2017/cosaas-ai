@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   ShieldCheck, GitBranch, Building2, Clock, MessageSquare, 
-  BarChart3, FileText, PanelRightClose, PanelRightOpen, Calendar 
+  BarChart3, FileText, PanelRightClose, PanelRightOpen, Calendar, Users 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -19,6 +19,7 @@ const tabs = [
   { id: 'crm', icon: BarChart3, label: 'CRM', indices: [7] },
   { id: 'docs', icon: FileText, label: 'Docs', indices: [8, 9, 10] },
   { id: 'scheduler', icon: Calendar, label: 'Scheduler', indices: [11] },
+  { id: 'team', icon: Users, label: 'Team', indices: [12] },
 ] as const;
 interface RightPanelProps {
   children: React.ReactNode;

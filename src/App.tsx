@@ -41,6 +41,8 @@ const App = () => (
             />
             {/* Public chat widget for clients — no auth required */}
             <Route path="/chat/:orgId" element={<ClientChat />} />
+            {/* Invite acceptance route */}
+            <Route path="/accept-invite" element={<AcceptInvite />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
