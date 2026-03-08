@@ -170,7 +170,7 @@ export function ActionPipelinePanel({ className }: ActionPipelinePanelProps) {
                     <span className={cn('px-1.5 py-0.5 rounded-full shrink-0 text-[10px] font-medium', getStatusColor(a.status))}>
                       {a.status.replace('_', ' ')}
                     </span>
-                    <span className="break-words min-w-0 text-foreground/80">{a.action_description}</span>
+                    <span className="break-words min-w-0 text-foreground/80 line-clamp-2">{a.action_description}</span>
                   </div>
                 ))}
               </div>
