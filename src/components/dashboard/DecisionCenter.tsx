@@ -132,20 +132,20 @@ export function DecisionCenter({ className }: DecisionCenterProps) {
 
                   <div className="flex items-center gap-2">
                     <Button
-                      size="sm" variant="default" className="flex-1 h-7 text-[11px] font-semibold"
+                      size="sm" variant="default" className="flex-1 min-w-0 h-auto min-h-7 py-1 text-[10px] leading-tight font-semibold whitespace-normal break-words"
                       onClick={() => handleApprove(decision.id)}
                       disabled={isUpdating || isProcessing}
                     >
                       {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Approve</>}
                     </Button>
                     <Button
-                      size="sm" variant="destructive" className="flex-1 h-7 text-[11px] font-semibold"
+                      size="sm" variant="destructive" className="flex-1 min-w-0 h-auto min-h-7 py-1 text-[10px] leading-tight font-semibold whitespace-normal break-words"
                       onClick={() => handleReject(decision.id)}
                       disabled={isUpdating || isProcessing}
                     >
                       {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3 mr-1" />Reject</>}
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 px-2">
+                    <Button size="sm" variant="outline" className="h-auto min-h-7 px-2 py-1 shrink-0">
                       <Pencil className="w-3 h-3" />
                     </Button>
                   </div>
