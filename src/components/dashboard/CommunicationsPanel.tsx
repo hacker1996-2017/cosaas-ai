@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
   Mail, Phone, Send, Loader2, Clock, CheckCircle, AlertCircle,
-  PhoneCall, PhoneOff, MessageSquare, Copy, ExternalLink,
-  Inbox, Bot, User, ChevronDown
+  PhoneCall, PhoneOff, MessageSquare, Copy, Inbox, Bot, User,
+  Sparkles, Reply, Eye, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { useEmails } from '@/hooks/useEmails';
 import { useCalls } from '@/hooks/useCalls';
 import { useMessages, Message } from '@/hooks/useMessages';
 import { useOrganization } from '@/hooks/useOrganization';
+import { useAIEmail } from '@/hooks/useAIEmail';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -30,10 +31,15 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const { calls, isLoading: callsLoading, createCall, isCreating: callCreating } = useCalls();
   const { messages, isLoading: messagesLoading, sendMessage, isSending: msgSending, unreadCount } = useMessages();
   const { organization } = useOrganization();
+  const { generateDraft, generateReply, summarizeEmail, isDrafting, isSummarizing } = useAIEmail();
+
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+  const [emailSummary, setEmailSummary] = useState<string | null>(null);
+  const [aiContext, setAiContext] = useState('');
 
   const [newEmail, setNewEmail] = useState({
     to: '', subject: '', body: '', from: 'ceo@company.com',
@@ -41,6 +47,57 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const [newCall, setNewCall] = useState({
     callee_number: '', summary: '',
   });
+
+  const handleAIDraft = async () => {
+    if (!newEmail.to || !newEmail.subject) {
+      toast.error('Enter recipient and subject first');
+      return;
+    }
+    try {
+      const result = await generateDraft({
+        to: newEmail.to.trim(),
+        subject: newEmail.subject.trim(),
+        context: aiContext || undefined,
+      });
+      if (result?.draft) {
+        setNewEmail(prev => ({ ...prev, body: result.draft }));
+        toast.success('AI draft generated');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate draft');
+    }
+  };
+
+  const handleAIReply = async (emailId: string) => {
+    try {
+      const result = await generateReply({
+        replyToEmailId: emailId,
+        context: aiContext || undefined,
+      });
+      if (result) {
+        setNewEmail({
+          to: result.replyTo || '',
+          subject: result.subject || '',
+          body: result.draft,
+          from: 'ceo@company.com',
+        });
+        setIsEmailDialogOpen(true);
+        toast.success('AI reply drafted');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate reply');
+    }
+  };
+
+  const handleSummarize = async (emailId: string) => {
+    try {
+      setSelectedEmailId(emailId);
+      const summary = await summarizeEmail(emailId);
+      setEmailSummary(summary);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to summarize');
+    }
+  };
 
   const handleCreateEmail = async () => {
     if (!newEmail.to || !newEmail.subject) { toast.error('To address and subject are required'); return; }
@@ -52,6 +109,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       toast.success('Email draft created');
       setIsEmailDialogOpen(false);
       setNewEmail({ to: '', subject: '', body: '', from: 'ceo@company.com' });
+      setAiContext('');
     } catch { toast.error('Failed to create email'); }
   };
 
@@ -135,7 +193,11 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
               <Copy className="w-3 h-3 mr-1" /> Link
             </Button>
           )}
-          <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+          {/* Compose Email Dialog */}
+          <Dialog open={isEmailDialogOpen} onOpenChange={(open) => {
+            setIsEmailDialogOpen(open);
+            if (!open) { setAiContext(''); setEmailSummary(null); setSelectedEmailId(null); }
+          }}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 border-border/40">
                 <Mail className="w-3 h-3 mr-1" /> Email
@@ -144,9 +206,50 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
             <DialogContent className="sm:max-w-lg">
               <DialogHeader><DialogTitle>Compose Email</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2"><Label>To *</Label><Input value={newEmail.to} onChange={(e) => setNewEmail({ ...newEmail, to: e.target.value })} placeholder="client@example.com" /></div>
-                <div className="space-y-2"><Label>Subject *</Label><Input value={newEmail.subject} onChange={(e) => setNewEmail({ ...newEmail, subject: e.target.value })} placeholder="Meeting Follow-up" /></div>
-                <div className="space-y-2"><Label>Body</Label><Textarea value={newEmail.body} onChange={(e) => setNewEmail({ ...newEmail, body: e.target.value })} rows={5} placeholder="Write your message..." /></div>
+                <div className="space-y-2">
+                  <Label>To *</Label>
+                  <Input value={newEmail.to} onChange={(e) => setNewEmail({ ...newEmail, to: e.target.value })} placeholder="client@example.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subject *</Label>
+                  <Input value={newEmail.subject} onChange={(e) => setNewEmail({ ...newEmail, subject: e.target.value })} placeholder="Meeting Follow-up" />
+                </div>
+
+                {/* AI Context input */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-primary" />
+                    AI Instructions (optional)
+                  </Label>
+                  <Input
+                    value={aiContext}
+                    onChange={(e) => setAiContext(e.target.value)}
+                    placeholder="e.g. Follow up on renewal, mention 10% discount..."
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Body</Label>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px] px-3 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={handleAIDraft}
+                      disabled={isDrafting || !newEmail.to || !newEmail.subject}
+                    >
+                      {isDrafting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      {isDrafting ? 'Drafting...' : 'AI Draft'}
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={newEmail.body}
+                    onChange={(e) => setNewEmail({ ...newEmail, body: e.target.value })}
+                    rows={6}
+                    placeholder="Write your message or click AI Draft..."
+                  />
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEmailDialogOpen(false)}>Cancel</Button>
@@ -158,6 +261,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
             </DialogContent>
           </Dialog>
 
+          {/* Log Call Dialog */}
           <Dialog open={isCallDialogOpen} onOpenChange={setIsCallDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 border-border/40">
@@ -182,6 +286,18 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
         </div>
       </div>
 
+      {/* Email Summary Dialog */}
+      <Dialog open={!!emailSummary} onOpenChange={(open) => { if (!open) { setEmailSummary(null); setSelectedEmailId(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" /> AI Summary</DialogTitle></DialogHeader>
+          <div className="py-4">
+            <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed bg-secondary/40 rounded-lg p-4 border border-border/30">
+              {emailSummary}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="inbox" className="p-3">
         <TabsList className="w-full bg-secondary/40 h-8">
           <TabsTrigger value="inbox" className="flex-1 text-[11px] h-7 data-[state=active]:bg-background">
@@ -198,21 +314,14 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
         {/* ── Inbox: Live chat threads ── */}
         <TabsContent value="inbox">
           {selectedThread ? (
-            // Thread detail view
             <div className="space-y-2">
-              <button
-                onClick={() => setSelectedThread(null)}
-                className="text-[11px] text-primary hover:underline flex items-center gap-1"
-              >
+              <button onClick={() => setSelectedThread(null)} className="text-[11px] text-primary hover:underline flex items-center gap-1">
                 ← Back to inbox
               </button>
               <ScrollArea className="h-48">
                 <div className="space-y-2">
                   {selectedMessages.map(msg => (
-                    <div key={msg.id} className={cn(
-                      'flex gap-2 text-xs',
-                      msg.sender_type === 'client' ? '' : 'flex-row-reverse'
-                    )}>
+                    <div key={msg.id} className={cn('flex gap-2 text-xs', msg.sender_type === 'client' ? '' : 'flex-row-reverse')}>
                       <div className={cn(
                         'w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[9px]',
                         msg.sender_type === 'client' ? 'bg-primary/20 text-primary' : 'bg-[hsl(var(--accent-success))]/20 text-[hsl(var(--accent-success))]'
@@ -228,19 +337,14 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                           <span className="text-[9px] text-muted-foreground">
                             {msg.sender_name} · {format(new Date(msg.created_at), 'h:mm a')}
                           </span>
-                          {msg.ai_auto_responded && (
-                            <span className="text-[8px] px-1 py-0.5 rounded bg-primary/20 text-primary">AI</span>
-                          )}
-                          {msg.ai_classification && (
-                            <span className={cn('text-[8px]', riskColor(msg.risk_level))}>{msg.ai_classification}</span>
-                          )}
+                          {msg.ai_auto_responded && <span className="text-[8px] px-1 py-0.5 rounded bg-primary/20 text-primary">AI</span>}
+                          {msg.ai_classification && <span className={cn('text-[8px]', riskColor(msg.risk_level))}>{msg.ai_classification}</span>}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </ScrollArea>
-              {/* Reply input */}
               <div className="flex gap-1.5">
                 <Input
                   value={replyText}
@@ -256,7 +360,6 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
               </div>
             </div>
           ) : (
-            // Thread list
             <ScrollArea className="h-56">
               {messagesLoading ? (
                 <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>
@@ -280,10 +383,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 min-w-0">
                           {thread.unread && <div className="w-2 h-2 rounded-full bg-primary shrink-0" />}
-                          <span className={cn(
-                            'text-[11px] truncate',
-                            thread.unread ? 'font-bold text-foreground' : 'font-medium text-foreground/80'
-                          )}>
+                          <span className={cn('text-[11px] truncate', thread.unread ? 'font-bold text-foreground' : 'font-medium text-foreground/80')}>
                             {thread.senderName}
                           </span>
                           {thread.lastMessage.ai_classification && (
@@ -300,9 +400,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                           {format(new Date(thread.lastMessage.created_at), 'MMM d')}
                         </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1">
-                        {thread.lastMessage.content}
-                      </p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">{thread.lastMessage.content}</p>
                     </button>
                   ))}
                 </div>
@@ -311,7 +409,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
           )}
         </TabsContent>
 
-        {/* ── Emails ── */}
+        {/* ── Emails with AI actions ── */}
         <TabsContent value="emails">
           <ScrollArea className="h-56">
             {emailsLoading ? (
@@ -324,7 +422,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
             ) : (
               <div className="space-y-1.5 mt-2">
                 {emails.map((email) => (
-                  <div key={email.id} className="p-2.5 rounded-lg space-y-1 border border-border/20 bg-secondary/30">
+                  <div key={email.id} className="p-2.5 rounded-lg space-y-1.5 border border-border/20 bg-secondary/30 group">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {email.status === 'sent' ? <CheckCircle className="w-3 h-3 text-[hsl(var(--accent-success))]" /> :
@@ -332,19 +430,53 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                          <Clock className="w-3 h-3 text-muted-foreground" />}
                         <span className="text-[11px] font-medium text-foreground truncate">{email.subject}</span>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {email.status === 'draft' && (
-                          <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
-                            disabled={emailSending}
-                            onClick={async () => { try { await sendEmail(email.id); toast.success('Email sent!'); } catch { toast.error('Failed to send'); } }}
-                          >
-                            <Send className="w-2.5 h-2.5 mr-0.5" /> Send
-                          </Button>
-                        )}
-                        <span className="text-[9px] text-muted-foreground font-mono">{format(new Date(email.created_at), 'MMM d')}</span>
-                      </div>
+                      <span className="text-[9px] text-muted-foreground font-mono shrink-0">
+                        {format(new Date(email.created_at), 'MMM d')}
+                      </span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground truncate">To: {email.to_addresses?.join(', ')}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {email.from_address} → {email.to_addresses?.join(', ')}
+                    </p>
+                    {email.body_text && (
+                      <p className="text-[10px] text-muted-foreground/70 line-clamp-2">{email.body_text}</p>
+                    )}
+
+                    {/* Action row */}
+                    <div className="flex items-center gap-1 pt-0.5">
+                      {email.status === 'draft' && (
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
+                          disabled={emailSending}
+                          onClick={async () => {
+                            try { await sendEmail(email.id); toast.success('Email sent!'); }
+                            catch { toast.error('Failed to send'); }
+                          }}
+                        >
+                          <Send className="w-2.5 h-2.5 mr-0.5" /> Send
+                        </Button>
+                      )}
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-primary"
+                        disabled={isDrafting}
+                        onClick={() => handleAIReply(email.id)}
+                      >
+                        {isDrafting ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> : <Reply className="w-2.5 h-2.5 mr-0.5" />}
+                        AI Reply
+                      </Button>
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-primary"
+                        disabled={isSummarizing}
+                        onClick={() => handleSummarize(email.id)}
+                      >
+                        {isSummarizing && selectedEmailId === email.id
+                          ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" />
+                          : <FileText className="w-2.5 h-2.5 mr-0.5" />}
+                        Summarize
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
