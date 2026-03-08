@@ -56,8 +56,41 @@ export function AgentSchedulerPanel() {
     scheduled_at: '',
     agent_id: '',
     priority: 5,
-    task_config: '{}',
+    // Type-specific config fields
+    command_text: '',
+    action_type: '',
+    action_description: '',
+    workflow_id: '',
+    notification_title: '',
+    notification_body: '',
+    report_type: 'general',
+    integration_id: '',
   });
+
+  const buildTaskConfig = (): Record<string, unknown> => {
+    switch (newTask.task_type) {
+      case 'command':
+        return { command_text: newTask.command_text || newTask.name };
+      case 'action_pipeline':
+        return {
+          action_type: newTask.action_type || 'scheduled_task',
+          action_description: newTask.action_description || newTask.name,
+        };
+      case 'workflow':
+        return { workflow_id: newTask.workflow_id || undefined };
+      case 'notification':
+        return {
+          title: newTask.notification_title || newTask.name,
+          body: newTask.notification_body || newTask.description || '',
+        };
+      case 'data_sync':
+        return { integration_id: newTask.integration_id || undefined };
+      case 'report':
+        return { report_type: newTask.report_type || 'general' };
+      default:
+        return {};
+    }
+  };
 
   const handleCreate = async () => {
     if (!newTask.name.trim()) {
@@ -65,13 +98,7 @@ export function AgentSchedulerPanel() {
       return;
     }
     try {
-      let config: Record<string, unknown>;
-      try {
-        config = JSON.parse(newTask.task_config);
-      } catch {
-        toast.error('Invalid JSON in task config');
-        return;
-      }
+      const config = buildTaskConfig();
 
       await createTask({
         name: newTask.name,
@@ -85,7 +112,7 @@ export function AgentSchedulerPanel() {
       });
       toast.success('Task scheduled');
       setShowCreate(false);
-      setNewTask({ name: '', description: '', task_type: 'command', frequency: 'once', scheduled_at: '', agent_id: '', priority: 5, task_config: '{}' });
+      setNewTask({ name: '', description: '', task_type: 'command', frequency: 'once', scheduled_at: '', agent_id: '', priority: 5, command_text: '', action_type: '', action_description: '', workflow_id: '', notification_title: '', notification_body: '', report_type: 'general', integration_id: '' });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create task');
     }
@@ -190,12 +217,58 @@ export function AgentSchedulerPanel() {
                 </SelectContent>
               </Select>
             </div>
-            <Textarea
-              placeholder='Task config (JSON)...'
-              value={newTask.task_config}
-              onChange={e => setNewTask(p => ({ ...p, task_config: e.target.value }))}
-              className="min-h-[40px] text-xs font-mono bg-background/50"
-            />
+            {/* Type-specific config fields */}
+            {newTask.task_type === 'command' && (
+              <Input
+                placeholder="Command text (e.g. 'Send weekly report to all clients')"
+                value={newTask.command_text}
+                onChange={e => setNewTask(p => ({ ...p, command_text: e.target.value }))}
+                className="h-8 text-xs bg-background/50"
+              />
+            )}
+            {newTask.task_type === 'action_pipeline' && (
+              <div className="space-y-2">
+                <Input
+                  placeholder="Action type (e.g. email_send, crm_update)"
+                  value={newTask.action_type}
+                  onChange={e => setNewTask(p => ({ ...p, action_type: e.target.value }))}
+                  className="h-8 text-xs bg-background/50"
+                />
+                <Input
+                  placeholder="Action description"
+                  value={newTask.action_description}
+                  onChange={e => setNewTask(p => ({ ...p, action_description: e.target.value }))}
+                  className="h-8 text-xs bg-background/50"
+                />
+              </div>
+            )}
+            {newTask.task_type === 'notification' && (
+              <div className="space-y-2">
+                <Input
+                  placeholder="Notification title"
+                  value={newTask.notification_title}
+                  onChange={e => setNewTask(p => ({ ...p, notification_title: e.target.value }))}
+                  className="h-8 text-xs bg-background/50"
+                />
+                <Textarea
+                  placeholder="Notification body"
+                  value={newTask.notification_body}
+                  onChange={e => setNewTask(p => ({ ...p, notification_body: e.target.value }))}
+                  className="min-h-[40px] text-xs bg-background/50"
+                />
+              </div>
+            )}
+            {newTask.task_type === 'report' && (
+              <Select value={newTask.report_type} onValueChange={v => setNewTask(p => ({ ...p, report_type: v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Report type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general" className="text-xs">General</SelectItem>
+                  <SelectItem value="financial" className="text-xs">Financial</SelectItem>
+                  <SelectItem value="client_health" className="text-xs">Client Health</SelectItem>
+                  <SelectItem value="agent_performance" className="text-xs">Agent Performance</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex gap-2">
               <Button size="sm" className="h-7 text-xs flex-1" onClick={handleCreate} disabled={isCreating}>
                 {isCreating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
