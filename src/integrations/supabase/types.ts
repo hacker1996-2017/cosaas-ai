@@ -1282,6 +1282,104 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          action_pipeline_id: string | null
+          agent_id: string | null
+          ai_auto_responded: boolean | null
+          ai_classification: string | null
+          ai_confidence: number | null
+          channel: string
+          client_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          is_read: boolean
+          metadata: Json | null
+          organization_id: string
+          risk_level: string | null
+          sender_email: string | null
+          sender_name: string | null
+          sender_type: string
+          thread_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_pipeline_id?: string | null
+          agent_id?: string | null
+          ai_auto_responded?: boolean | null
+          ai_classification?: string | null
+          ai_confidence?: number | null
+          channel?: string
+          client_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          organization_id: string
+          risk_level?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sender_type?: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_pipeline_id?: string | null
+          agent_id?: string | null
+          ai_auto_responded?: boolean | null
+          ai_classification?: string | null
+          ai_confidence?: number | null
+          channel?: string
+          client_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          organization_id?: string
+          risk_level?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sender_type?: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_action_pipeline_id_fkey"
+            columns: ["action_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "action_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           actions_this_hour: number

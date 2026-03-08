@@ -7,7 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
- import OrganizationSetup from "./pages/OrganizationSetup";
+import OrganizationSetup from "./pages/OrganizationSetup";
+import ClientChat from "./pages/ClientChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* Public chat widget for clients — no auth required */}
+            <Route path="/chat/:orgId" element={<ClientChat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

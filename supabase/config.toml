@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.send-email]
 verify_jwt = false
+
+[functions.triage-inbound]
+verify_jwt = false
+
+[functions.elevenlabs-conversation-token]
+verify_jwt = false
