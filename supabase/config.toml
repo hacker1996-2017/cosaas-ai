@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.agent-scheduler]
 verify_jwt = false
+
+[functions.integration-sync]
+verify_jwt = false
