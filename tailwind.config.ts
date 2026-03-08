@@ -22,6 +22,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          muted: "hsl(var(--primary-muted))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -57,16 +58,18 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Executive OS Custom Colors
         exec: {
           dark: "hsl(var(--bg-dark))",
           panel: "hsl(var(--bg-panel))",
           soft: "hsl(var(--bg-soft))",
           hover: "hsl(var(--bg-hover))",
+          elevated: "hsl(var(--bg-elevated))",
           success: "hsl(var(--accent-success))",
           warning: "hsl(var(--accent-warning))",
           danger: "hsl(var(--accent-danger))",
           info: "hsl(var(--accent-info))",
+          gold: "hsl(var(--gold))",
+          "gold-muted": "hsl(var(--gold-muted))",
         },
       },
       borderRadius: {
@@ -92,12 +95,16 @@ export default {
           to: { transform: "translateX(0)", opacity: "1" },
         },
         "fade-in": {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
         "typing": {
           "0%": { width: "0" },
           "100%": { width: "100%" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {
@@ -105,11 +112,13 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "slide-in-right": "slide-in-right 0.3s ease-out",
-        "fade-in": "fade-in 0.3s ease-out",
+        "fade-in": "fade-in 0.4s ease-out",
         "typing": "typing 1s steps(20, end)",
+        "shimmer": "shimmer 2s linear infinite",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["'JetBrains Mono'", "monospace"],
       },
     },
   },

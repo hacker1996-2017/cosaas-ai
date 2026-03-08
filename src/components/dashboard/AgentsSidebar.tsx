@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, AlertCircle, Settings2 } from 'lucide-react';
+import { Loader2, AlertCircle, Settings2, Bot } from 'lucide-react';
 import { AgentCard } from './AgentCard';
 import { AutonomyControl } from './AutonomyControl';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -40,11 +40,14 @@ export function AgentsSidebar({ className }: AgentsSidebarProps) {
   if (isLoading) {
     return (
       <div className={`gradient-sidebar flex flex-col h-full ${className}`}>
-        <div className="p-4 border-b border-sidebar-border">
-          <h2 className="text-lg font-bold text-foreground">AI EXECUTIVE AGENTS</h2>
+        <div className="px-4 py-4 border-b border-sidebar-border">
+          <div className="flex items-center gap-2">
+            <Bot className="w-4 h-4 text-primary" />
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Agents</h2>
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
         </div>
       </div>
     );
@@ -53,13 +56,15 @@ export function AgentsSidebar({ className }: AgentsSidebarProps) {
   if (agentsError) {
     return (
       <div className={`gradient-sidebar flex flex-col h-full ${className}`}>
-        <div className="p-4 border-b border-sidebar-border">
-          <h2 className="text-lg font-bold text-foreground">AI EXECUTIVE AGENTS</h2>
+        <div className="px-4 py-4 border-b border-sidebar-border">
+          <div className="flex items-center gap-2">
+            <Bot className="w-4 h-4 text-primary" />
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Agents</h2>
+          </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-          <AlertCircle className="w-8 h-8 text-destructive mb-2" />
-          <p className="text-sm text-muted-foreground">Failed to load agents</p>
-          <p className="text-xs text-muted-foreground mt-1">Please try refreshing</p>
+          <AlertCircle className="w-6 h-6 text-destructive mb-2" />
+          <p className="text-xs text-muted-foreground">Failed to load agents</p>
         </div>
       </div>
     );
@@ -68,29 +73,32 @@ export function AgentsSidebar({ className }: AgentsSidebarProps) {
   return (
     <div className={`gradient-sidebar flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground">AI EXECUTIVE AGENTS</h2>
-          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
-            {agents.length} active
+      <div className="px-4 py-4 border-b border-sidebar-border">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-2">
+            <Bot className="w-4 h-4 text-primary" />
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">AI Agents</h2>
+          </div>
+          <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+            {agents.length}
           </span>
         </div>
         {organization && (
-          <p className="text-xs text-muted-foreground mt-1 truncate">
-            {organization.name} • {organization.industry || 'General'}
+          <p className="text-[10px] text-muted-foreground truncate pl-6">
+            {organization.name}
           </p>
         )}
       </div>
 
       {/* Agent Cards */}
-      <ScrollArea className="flex-1 p-3">
-        <div className="space-y-3">
+      <ScrollArea className="flex-1 px-3 py-3">
+        <div className="space-y-2">
           {agents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Settings2 className="w-8 h-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No agents configured</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Agents will be created during organization setup
+              <Settings2 className="w-6 h-6 text-muted-foreground mb-2 opacity-50" />
+              <p className="text-xs text-muted-foreground">No agents configured</p>
+              <p className="text-[10px] text-muted-foreground mt-1 opacity-70">
+                Set up your organization first
               </p>
             </div>
           ) : (

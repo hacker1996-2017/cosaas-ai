@@ -35,11 +35,11 @@ const riskBadgeClass: Record<RiskLevel, string> = {
 };
 
 const statusColors: Record<ClientStatus, string> = {
-  prospect: 'bg-blue-500/20 text-blue-400',
-  onboarding: 'bg-yellow-500/20 text-yellow-400',
-  active: 'bg-green-500/20 text-green-400',
-  paused: 'bg-gray-500/20 text-gray-400',
-  churned: 'bg-red-500/20 text-red-400',
+  prospect: 'bg-primary/15 text-primary border border-primary/20',
+  onboarding: 'badge-warning',
+  active: 'badge-success',
+  paused: 'bg-secondary/60 text-muted-foreground border border-border/30',
+  churned: 'badge-danger',
 };
 
 interface InternalCRMProps {
@@ -129,7 +129,10 @@ export function InternalCRM({ className }: InternalCRMProps) {
   return (
     <div className={cn('panel', className)}>
       <div className="panel-header flex items-center justify-between">
-        <span>Internal CRM</span>
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-3.5 h-3.5 text-primary" />
+          <span>Internal CRM</span>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" variant="outline" className="h-7 text-xs">

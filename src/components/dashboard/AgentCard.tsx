@@ -23,10 +23,10 @@ interface AgentCardProps {
 }
 
 const statusConfig: Record<AgentStatus, { label: string; class: string }> = {
-  available: { label: 'Available', class: 'status-dot available' },
+  available: { label: 'Online', class: 'status-dot available' },
   busy: { label: 'Busy', class: 'status-dot busy' },
   error: { label: 'Error', class: 'status-dot error' },
-  maintenance: { label: 'Maintenance', class: 'status-dot busy' },
+  maintenance: { label: 'Maint.', class: 'status-dot busy' },
 };
 
 export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
@@ -89,29 +89,29 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg shrink-0">{agent.emoji}</span>
-          <span className="font-medium text-sm text-foreground break-words">{agent.name}</span>
+          <span className="text-base shrink-0">{agent.emoji}</span>
+          <span className="font-semibold text-[13px] text-foreground break-words leading-tight">{agent.name}</span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <div className={statusConfig[status].class} />
-          <span className="text-xs text-muted-foreground capitalize">
+          <span className="text-[10px] text-muted-foreground font-medium">
             {statusConfig[status].label}
           </span>
         </div>
       </div>
 
       {/* Role */}
-      <p className="text-xs text-muted-foreground mb-3 break-words line-clamp-2">{agent.role}</p>
+      <p className="text-[11px] text-muted-foreground mb-3 break-words line-clamp-2 leading-relaxed">{agent.role}</p>
 
       {/* Stats */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
         <div className="flex items-center gap-1">
-          <Activity className="w-3 h-3" />
-          <span>Tasks: {activeTasks}/{maxCapacity}</span>
+          <Activity className="w-3 h-3 opacity-60" />
+          <span className="font-mono">{activeTasks}/{maxCapacity}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Zap className="w-3 h-3" />
-          <span>Quota: {quotaPercent}%</span>
+          <Zap className="w-3 h-3 opacity-60" />
+          <span className="font-mono">{quotaPercent}%</span>
         </div>
       </div>
 
@@ -119,8 +119,8 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
       <Progress 
         value={quotaPercent} 
         className={cn(
-          "h-1.5 bg-secondary",
-          quotaPercent > 80 && "[&>div]:bg-[hsl(var(--accent-warning))]",
+          "h-1 bg-secondary/50",
+          quotaPercent > 80 && "[&>div]:bg-exec-warning",
           quotaPercent > 95 && "[&>div]:bg-destructive"
         )}
       />
@@ -131,65 +131,62 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
           e.stopPropagation();
           setExpanded(!expanded);
         }}
-        className="w-full mt-3 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="w-full mt-2.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {expanded ? (
-          <><ChevronUp className="w-3 h-3" /><span>Hide Details</span></>
+          <><ChevronUp className="w-3 h-3" /><span>Collapse</span></>
         ) : (
-          <><ChevronDown className="w-3 h-3" /><span>View Details</span></>
+          <><ChevronDown className="w-3 h-3" /><span>Details</span></>
         )}
       </button>
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-border space-y-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-3 pt-3 border-t border-border/30 space-y-3 animate-fade-in" onClick={(e) => e.stopPropagation()}>
           {/* Role Description */}
           <div>
-            <h4 className="text-xs font-semibold text-foreground mb-1">Specialization</h4>
-            <p className="text-xs text-muted-foreground break-words">{agent.role}</p>
+            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Specialization</h4>
+            <p className="text-[11px] text-foreground/80 break-words leading-relaxed">{agent.role}</p>
           </div>
 
-          {/* Description */}
           {agent.description && (
             <div>
-              <h4 className="text-xs font-semibold text-foreground mb-1">Description</h4>
-              <p className="text-xs text-muted-foreground break-words">{agent.description}</p>
+              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Description</h4>
+              <p className="text-[11px] text-foreground/80 break-words leading-relaxed">{agent.description}</p>
             </div>
           )}
 
-          {/* Agent Stats */}
+          {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded bg-secondary/50">
-              <p className="text-xs text-muted-foreground">Capacity</p>
-              <p className="text-sm font-medium text-foreground">{activeTasks}/{maxCapacity}</p>
+            <div className="stat-card">
+              <p className="text-[10px] text-muted-foreground">Capacity</p>
+              <p className="text-sm font-semibold text-foreground font-mono">{activeTasks}/{maxCapacity}</p>
             </div>
-            <div className="p-2 rounded bg-secondary/50">
-              <p className="text-xs text-muted-foreground">Daily Quota</p>
-              <p className="text-sm font-medium text-foreground">{quotaUsed}/{quotaMax}</p>
+            <div className="stat-card">
+              <p className="text-[10px] text-muted-foreground">Quota</p>
+              <p className="text-sm font-semibold text-foreground font-mono">{quotaUsed}/{quotaMax}</p>
             </div>
           </div>
 
-          {/* System Agent Badge */}
           {agent.is_system_agent && (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="px-2 py-0.5 rounded bg-primary/20 text-primary">
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
                 System Agent
               </span>
-              <span className="text-muted-foreground">Auto-configured</span>
             </div>
           )}
 
-          {/* Agent Instructions - Embedded */}
-          <div className="border-t border-border pt-3">
+          {/* Instructions */}
+          <div className="border-t border-border/30 pt-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-semibold text-foreground">Instructions</span>
+                <BookOpen className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Instructions</span>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                    <Plus className="w-3.5 h-3.5" />
+                  <Button size="sm" variant="ghost" className="h-5 w-5 p-0">
+                    <Plus className="w-3 h-3" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg">
@@ -238,25 +235,25 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
 
             {instructionsLoading ? (
               <div className="flex justify-center py-2">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
               </div>
             ) : instructions.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground text-center py-2">No instructions yet</p>
+              <p className="text-[10px] text-muted-foreground text-center py-2 opacity-60">No instructions yet</p>
             ) : (
               <div className="space-y-1.5">
                 {instructions.map((inst) => (
                   <div
                     key={inst.id}
                     className={cn(
-                      'p-2 rounded bg-secondary/50 space-y-1',
-                      !inst.is_active && 'opacity-50'
+                      'p-2 rounded-lg space-y-1 border border-border/30',
+                      inst.is_active ? 'bg-secondary/30' : 'opacity-40 bg-secondary/10'
                     )}
                   >
                     <div className="flex items-start justify-between gap-1">
-                      <p className="text-[11px] text-foreground break-words min-w-0 flex-1">{inst.instructions}</p>
+                      <p className="text-[11px] text-foreground/80 break-words min-w-0 flex-1 leading-relaxed">{inst.instructions}</p>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button onClick={() => handleToggle(inst.id, inst.is_active ?? true)} className="p-0.5 hover:bg-secondary rounded">
-                          {inst.is_active ? <ToggleRight className="w-3.5 h-3.5 text-[hsl(var(--accent-success))]" /> : <ToggleLeft className="w-3.5 h-3.5 text-muted-foreground" />}
+                          {inst.is_active ? <ToggleRight className="w-3.5 h-3.5 text-exec-success" /> : <ToggleLeft className="w-3.5 h-3.5 text-muted-foreground" />}
                         </button>
                         <button onClick={() => handleDeleteInstruction(inst.id)} className="p-0.5 hover:bg-secondary rounded text-muted-foreground hover:text-destructive">
                           <Trash2 className="w-3 h-3" />
@@ -266,7 +263,7 @@ export function AgentCard({ agent, isSelected, onClick }: AgentCardProps) {
                     {inst.deliverables && inst.deliverables.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {inst.deliverables.map((d, i) => (
-                          <span key={i} className="text-[9px] px-1 py-0.5 rounded bg-primary/20 text-primary">{d}</span>
+                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/15">{d}</span>
                         ))}
                       </div>
                     )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Loader2, Power } from 'lucide-react';
+import { AlertTriangle, Loader2, Power, ShieldOff, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -42,51 +42,58 @@ export function KillSwitchControl({ className }: KillSwitchControlProps) {
 
   return (
     <div className={cn(
-      'panel border',
-      killSwitchActive ? 'border-destructive/50 bg-destructive/5' : 'border-border',
+      'panel',
+      killSwitchActive && 'border-destructive/30',
       className
-    )}>
+    )}
+      style={killSwitchActive ? {
+        background: 'linear-gradient(168deg, hsl(0 72% 56% / 0.06) 0%, hsl(var(--bg-panel)) 100%)',
+      } : undefined}
+    >
       <div className="panel-header flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Power className={cn('w-4 h-4', killSwitchActive ? 'text-destructive' : 'text-muted-foreground')} />
-          <span>Kill Switch</span>
+          {killSwitchActive 
+            ? <ShieldOff className="w-3.5 h-3.5 text-destructive" />
+            : <ShieldCheck className="w-3.5 h-3.5 text-exec-success" />
+          }
+          <span>Emergency Control</span>
         </div>
         <span className={cn(
-          'text-xs px-2 py-0.5 rounded',
+          'text-[10px] font-semibold px-2 py-0.5 rounded-full',
           killSwitchActive ? 'badge-danger' : 'badge-success'
         )}>
-          {killSwitchActive ? 'ACTIVE' : 'Normal'}
+          {killSwitchActive ? 'HALTED' : 'ACTIVE'}
         </span>
       </div>
 
       <div className="p-3 space-y-3">
         {killSwitchActive && (
-          <div className="flex items-center gap-2 text-xs bg-destructive/10 text-destructive rounded-lg p-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>All AI actions are halted. No automated operations will execute.</span>
+          <div className="flex items-start gap-2 text-[11px] bg-destructive/8 text-destructive rounded-lg p-2.5 border border-destructive/15">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">All AI-driven operations are halted. No automated actions will execute.</span>
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
           {killSwitchActive
             ? 'Deactivate to resume normal AI operations.'
-            : 'Emergency control to halt all AI-driven actions immediately.'}
+            : 'Immediately halt all AI-driven actions.'}
         </p>
 
         <Button
           variant={killSwitchActive ? 'default' : 'destructive'}
           size="sm"
-          className="w-full"
+          className="w-full h-8 text-xs font-semibold"
           onClick={toggleKillSwitch}
           disabled={isToggling}
         >
           {isToggling ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : killSwitchActive ? (
             'Resume Operations'
           ) : (
             <>
-              <AlertTriangle className="w-4 h-4 mr-2" />
+              <Power className="w-3.5 h-3.5 mr-1.5" />
               Activate Kill Switch
             </>
           )}

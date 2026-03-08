@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Mail, Phone, Plus, Send, Loader2, Clock, 
-  CheckCircle, AlertCircle, PhoneCall, PhoneOff 
+  CheckCircle, AlertCircle, PhoneCall, PhoneOff, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,7 +88,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
   const emailStatusIcon = (status: string) => {
     switch (status) {
-      case 'sent': return <CheckCircle className="w-3 h-3 text-[hsl(var(--accent-success))]" />;
+      case 'sent': return <CheckCircle className="w-3 h-3 text-exec-success" />;
       case 'draft': return <Clock className="w-3 h-3 text-muted-foreground" />;
       case 'failed': return <AlertCircle className="w-3 h-3 text-destructive" />;
       default: return <Mail className="w-3 h-3 text-muted-foreground" />;
@@ -97,8 +97,8 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
   const callStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <PhoneOff className="w-3 h-3 text-[hsl(var(--accent-success))]" />;
-      case 'in_progress': return <PhoneCall className="w-3 h-3 text-[hsl(var(--accent-warning))]" />;
+      case 'completed': return <PhoneOff className="w-3 h-3 text-exec-success" />;
+      case 'in_progress': return <PhoneCall className="w-3 h-3 text-exec-warning" />;
       default: return <Phone className="w-3 h-3 text-muted-foreground" />;
     }
   };
@@ -107,13 +107,13 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
     <div className={cn('panel', className)}>
       <div className="panel-header flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Mail className="w-4 h-4 text-primary" />
+          <MessageSquare className="w-3.5 h-3.5 text-primary" />
           <span>Communications</span>
         </div>
         <div className="flex gap-1">
           <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="h-7 text-xs">
+              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 border-border/40">
                 <Mail className="w-3 h-3 mr-1" /> Email
               </Button>
             </DialogTrigger>
@@ -145,7 +145,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
           <Dialog open={isCallDialogOpen} onOpenChange={setIsCallDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="h-7 text-xs">
+              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 border-border/40">
                 <Phone className="w-3 h-3 mr-1" /> Call
               </Button>
             </DialogTrigger>
@@ -174,35 +174,37 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       </div>
 
       <Tabs defaultValue="emails" className="p-3">
-        <TabsList className="w-full bg-secondary">
-          <TabsTrigger value="emails" className="flex-1 text-xs">Emails ({emails.length})</TabsTrigger>
-          <TabsTrigger value="calls" className="flex-1 text-xs">Calls ({calls.length})</TabsTrigger>
+        <TabsList className="w-full bg-secondary/40 h-8">
+          <TabsTrigger value="emails" className="flex-1 text-[11px] h-7 data-[state=active]:bg-background">Emails ({emails.length})</TabsTrigger>
+          <TabsTrigger value="calls" className="flex-1 text-[11px] h-7 data-[state=active]:bg-background">Calls ({calls.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="emails">
           <ScrollArea className="h-56">
             {emailsLoading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>
             ) : emails.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Mail className="w-8 h-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No emails yet</p>
+                <Mail className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
+                <p className="text-xs text-muted-foreground">No emails yet</p>
               </div>
             ) : (
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1.5 mt-2">
                 {emails.map((email) => (
-                  <div key={email.id} className="p-2.5 rounded-lg bg-secondary/50 space-y-1">
+                  <div key={email.id} className="p-2.5 rounded-lg space-y-1 border border-border/20"
+                    style={{ background: 'hsl(var(--bg-soft) / 0.3)' }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {emailStatusIcon(email.status || 'draft')}
-                        <span className="text-xs font-medium text-foreground truncate">{email.subject}</span>
+                        <span className="text-[11px] font-medium text-foreground truncate">{email.subject}</span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {email.status === 'draft' && (
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-5 px-1.5 text-[10px]"
+                            className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
                             disabled={emailSending}
                             onClick={async () => {
                               try {
@@ -217,7 +219,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                             Send
                           </Button>
                         )}
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[9px] text-muted-foreground font-mono">
                           {format(new Date(email.created_at), 'MMM d')}
                         </span>
                       </div>
@@ -235,22 +237,24 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
         <TabsContent value="calls">
           <ScrollArea className="h-56">
             {callsLoading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>
             ) : calls.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Phone className="w-8 h-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No calls logged</p>
+                <Phone className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
+                <p className="text-xs text-muted-foreground">No calls logged</p>
               </div>
             ) : (
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1.5 mt-2">
                 {calls.map((call) => (
-                  <div key={call.id} className="p-2.5 rounded-lg bg-secondary/50 space-y-1">
+                  <div key={call.id} className="p-2.5 rounded-lg space-y-1 border border-border/20"
+                    style={{ background: 'hsl(var(--bg-soft) / 0.3)' }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         {callStatusIcon(call.status || 'scheduled')}
-                        <span className="text-xs font-medium text-foreground">{call.callee_number}</span>
+                        <span className="text-[11px] font-medium text-foreground font-mono">{call.callee_number}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[9px] text-muted-foreground font-mono">
                         {format(new Date(call.created_at), 'MMM d')}
                       </span>
                     </div>
@@ -258,8 +262,8 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                       <p className="text-[10px] text-muted-foreground line-clamp-1">{call.summary}</p>
                     )}
                     {call.duration_seconds && (
-                      <span className="text-[10px] text-muted-foreground">
-                        Duration: {Math.floor(call.duration_seconds / 60)}m {call.duration_seconds % 60}s
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        {Math.floor(call.duration_seconds / 60)}m {call.duration_seconds % 60}s
                       </span>
                     )}
                   </div>
