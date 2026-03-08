@@ -94,10 +94,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" className="relative h-8 w-8 text-muted-foreground hover:text-foreground">
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-exec-danger" />
-          </Button>
+          <NotificationCenter />
 
           <div className="w-px h-6 bg-border/40 mx-1" />
 
