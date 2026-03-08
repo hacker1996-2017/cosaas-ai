@@ -38,6 +38,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* Public chat widget for clients — no auth required */}
+            <Route path="/chat/:orgId" element={<ClientChat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
