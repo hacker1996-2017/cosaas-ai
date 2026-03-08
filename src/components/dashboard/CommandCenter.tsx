@@ -60,13 +60,34 @@ export function CommandCenter({ className }: CommandCenterProps) {
         });
 
         if (cmd.status === 'completed') {
+          const result = cmd.result as Record<string, unknown> | null;
+          const evidence = result?.evidence_collected ? '✓ Evidence collected' : '';
+          const actionId = result?.action_pipeline_id ? `Pipeline: ${String(result.action_pipeline_id).substring(0, 8)}…` : '';
+          const execResult = result?.execution_result as Record<string, unknown> | null;
+          
+          let summary = 'Command executed successfully.';
+          if (execResult?.report) {
+            summary = String(execResult.report).substring(0, 300);
+          } else if (execResult?.clientId) {
+            summary = `✓ Client operation completed. ID: ${String(execResult.clientId).substring(0, 8)}…`;
+          } else if (execResult?.resendId) {
+            summary = `✓ Email sent. Resend ID: ${execResult.resendId}`;
+          } else if (execResult?.taskId) {
+            summary = `✓ Task created. ID: ${String(execResult.taskId).substring(0, 8)}…`;
+          } else if (execResult?.manual_followup) {
+            summary = '✓ Action logged. Manual follow-up may be required.';
+          }
+          
+          const evidenceLine = [actionId, evidence].filter(Boolean).join(' · ');
+
           commandMessages.push({
             id: `resp-${cmd.id}`,
             role: 'ai',
-            content: cmd.result 
-              ? `Command executed successfully. ${JSON.stringify(cmd.result)}`
-              : 'Command completed successfully.',
+            content: `${summary}${evidenceLine ? `\n\n_${evidenceLine}_` : ''}`,
             timestamp: cmd.completed_at ? new Date(cmd.completed_at) : new Date(cmd.created_at),
+            confidenceScore: cmd.confidence_score ? Number(cmd.confidence_score) : 0.95,
+            riskLevel: cmd.risk_level as ChatMessage['riskLevel'],
+          });
             confidenceScore: cmd.confidence_score ? Number(cmd.confidence_score) : 0.95,
             riskLevel: cmd.risk_level as ChatMessage['riskLevel'],
           });
