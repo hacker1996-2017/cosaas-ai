@@ -212,8 +212,8 @@ export function DevOpsPanel({ className }: DevOpsPanelProps) {
                     <span className={cn(
                       'text-[10px] font-bold px-2.5 py-1 rounded-full uppercase',
                       triageReport.triage.severity === 'critical' && 'badge-danger',
-                      triageReport.triage.severity === 'high' && 'bg-orange-500/15 text-orange-400 border border-orange-500/20',
-                      triageReport.triage.severity === 'medium' && 'badge-warning',
+                      triageReport.triage.severity === 'high' && 'badge-warning',
+                      triageReport.triage.severity === 'medium' && 'bg-secondary text-muted-foreground border border-border/30',
                       triageReport.triage.severity === 'low' && 'badge-success',
                     )}>
                       {triageReport.triage.severity}
