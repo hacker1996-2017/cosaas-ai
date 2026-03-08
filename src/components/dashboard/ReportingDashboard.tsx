@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadialBarChart, RadialBar,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -6,14 +6,19 @@ import {
 import {
   TrendingUp, TrendingDown, Users, Shield, DollarSign, Activity,
   Zap, Brain, FileCheck, BarChart3, Target, AlertTriangle,
+  Download, FileSpreadsheet, Printer, HeartPulse, Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useReportingData } from '@/hooks/useReportingData';
+import { exportToCSV, exportToPDF } from '@/lib/export-utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const fmt = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
