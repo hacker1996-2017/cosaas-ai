@@ -469,6 +469,120 @@ export type Database = {
           },
         ]
       }
+      client_notes: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_pinned: boolean
+          note_type: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          note_type?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          note_type?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_tasks: {
+        Row: {
+          assigned_to: string | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          organization_id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          organization_id: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          organization_id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           assigned_agent_id: string | null
@@ -479,12 +593,15 @@ export type Database = {
           expansion_opportunity:
             | Database["public"]["Enums"]["risk_level"]
             | null
+          health_score: number | null
           id: string
           industry: string | null
+          last_contact_at: string | null
           lifetime_value: number | null
           metadata: Json | null
           mrr: number | null
           name: string
+          next_follow_up: string | null
           organization_id: string
           phone: string | null
           primary_contact_email: string | null
@@ -504,12 +621,15 @@ export type Database = {
           expansion_opportunity?:
             | Database["public"]["Enums"]["risk_level"]
             | null
+          health_score?: number | null
           id?: string
           industry?: string | null
+          last_contact_at?: string | null
           lifetime_value?: number | null
           metadata?: Json | null
           mrr?: number | null
           name: string
+          next_follow_up?: string | null
           organization_id: string
           phone?: string | null
           primary_contact_email?: string | null
@@ -529,12 +649,15 @@ export type Database = {
           expansion_opportunity?:
             | Database["public"]["Enums"]["risk_level"]
             | null
+          health_score?: number | null
           id?: string
           industry?: string | null
+          last_contact_at?: string | null
           lifetime_value?: number | null
           metadata?: Json | null
           mrr?: number | null
           name?: string
+          next_follow_up?: string | null
           organization_id?: string
           phone?: string | null
           primary_contact_email?: string | null
