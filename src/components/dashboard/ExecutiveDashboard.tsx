@@ -35,7 +35,7 @@ export function ExecutiveDashboard() {
         {/* Right panel children are indexed by position — order matters for tab mapping:
             0: KillSwitch, 1: Industry, 2: ActionPipeline, 3: DecisionCenter,
             4: AuditLog, 5: EventTimeline, 6: Communications, 7: CRM,
-            8: Documents, 9: Workflows, 10: Integrations */}
+            8: Documents, 9: Workflows, 10: Integrations, 11: DevOps */}
         <RightPanel>
           <KillSwitchControl />
           <IndustryPanel />
@@ -48,6 +48,7 @@ export function ExecutiveDashboard() {
           <DocumentsPanel />
           <WorkflowsPanel />
           <IntegrationsPanel />
+          <DevOpsPanel />
         </RightPanel>
       </div>
     </div>
