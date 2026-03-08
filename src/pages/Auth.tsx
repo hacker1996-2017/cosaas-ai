@@ -171,6 +171,62 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {showForgotPassword ? (
+              <div className="space-y-4">
+                {forgotSent ? (
+                  <div className="text-center space-y-4 py-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
+                      <Sparkles className="w-6 h-6 text-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Check your email for a password reset link.
+                    </p>
+                    <Button variant="outline" onClick={() => { setShowForgotPassword(false); setForgotSent(false); }} className="w-full">
+                      Back to Sign In
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="forgot-email">Email</Label>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="ceo@company.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      disabled={isSubmitting}
+                      onClick={async () => {
+                        if (!forgotEmail) {
+                          toast.error('Enter your email');
+                          return;
+                        }
+                        setIsSubmitting(true);
+                        const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+                          redirectTo: `${window.location.origin}/reset-password`,
+                        });
+                        setIsSubmitting(false);
+                        if (error) {
+                          toast.error(error.message);
+                        } else {
+                          setForgotSent(true);
+                        }
+                      }}
+                    >
+                      {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : 'Send Reset Link'}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setShowForgotPassword(false)} className="w-full">
+                      Back to Sign In
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -196,7 +252,16 @@ export default function Auth() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <button
+                        type="button"
+                        className="text-xs text-primary hover:underline"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <Input
                       id="signin-password"
                       type="password"
