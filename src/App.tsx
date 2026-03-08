@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import OrganizationSetup from "./pages/OrganizationSetup";
 import ClientChat from "./pages/ClientChat";
 import AcceptInvite from "./pages/AcceptInvite";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Index />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               }
             />
