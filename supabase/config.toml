@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.devops-agent]
 verify_jwt = false
+
+[functions.dispatch-action]
+verify_jwt = false
