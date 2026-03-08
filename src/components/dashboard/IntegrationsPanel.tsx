@@ -243,7 +243,7 @@ export function IntegrationsPanel({ className }: IntegrationsPanelProps) {
                         <RefreshCw className={cn('w-3 h-3', triggerSync.isPending && 'animate-spin')} />
                       </Button>
                     )}
-                    <StatusIcon className={cn('w-3.5 h-3.5', status.color, integration.status === 'syncing' && 'animate-spin')} />
+                    <StatusIcon className={cn('w-3.5 h-3.5', status.color, (integration.status as string) === 'syncing' && 'animate-spin')} />
                   </div>
                 </div>
 
