@@ -86,10 +86,6 @@ export function CommandCenter({ className }: CommandCenterProps) {
             content: `${summary}${evidenceLine ? `\n\n_${evidenceLine}_` : ''}`,
             timestamp: cmd.completed_at ? new Date(cmd.completed_at) : new Date(cmd.created_at),
             confidenceScore: cmd.confidence_score ? Number(cmd.confidence_score) : 0.95,
-            riskLevel: cmd.risk_level as ChatMessage['riskLevel'],
-          });
-            confidenceScore: cmd.confidence_score ? Number(cmd.confidence_score) : 0.95,
-            riskLevel: cmd.risk_level as ChatMessage['riskLevel'],
           });
         } else if (cmd.status === 'in_progress') {
           commandMessages.push({

@@ -29,7 +29,7 @@ interface ProcessCommandResult {
     evidence?: Record<string, unknown>;
     outputData?: Record<string, unknown>;
   } | null;
-
+}
 export function useCommands() {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();
