@@ -129,7 +129,7 @@ export function useScheduledTasks() {
 
       const { data, error } = await supabase
         .from('scheduled_tasks')
-        .insert(insertData)
+        .insert(insertData as any)
         .select()
         .single();
 
