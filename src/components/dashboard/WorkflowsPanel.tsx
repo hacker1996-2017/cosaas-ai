@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
   Sparkles, Check, Circle, AlertCircle, Workflow as WorkflowIcon,
   Plus, Play, Trash2, ChevronDown, ChevronUp, Loader2, Settings2,
   Clock, Zap, XCircle, PauseCircle, RotateCcw, GripVertical,
+  Brain, ArrowRight, Shield, MessageSquare,
 } from 'lucide-react';
 import { useWorkflows, WorkflowWithSteps } from '@/hooks/useWorkflows';
 import { useAgents } from '@/hooks/useAgents';
@@ -19,6 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface WorkflowsPanelProps {
   className?: string;
@@ -51,12 +58,13 @@ const STEP_STATUS_CONFIG: Record<string, { icon: React.ReactNode; className: str
   failed: { icon: <XCircle className="w-3 h-3 text-exec-danger" />, className: 'badge-danger' },
 };
 
-type ViewMode = 'list' | 'create' | 'detail';
+type ViewMode = 'list' | 'create' | 'detail' | 'ai_generate';
 
 export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
   const {
     workflows, isLoading, createWorkflow, deleteWorkflow,
-    executeWorkflow, executeStep, isCreating, isExecuting, isExecutingStep,
+    executeWorkflow, executeStep, generateWorkflow,
+    isCreating, isExecuting, isExecutingStep, isGenerating,
     stats,
   } = useWorkflows();
   const { agents } = useAgents();
@@ -64,6 +72,10 @@ export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowWithSteps | null>(null);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [executingStepId, setExecutingStepId] = useState<string | null>(null);
+  const [lastExecutionResult, setLastExecutionResult] = useState<Record<string, unknown> | null>(null);
+
+  // ── AI Generate state
+  const [aiPrompt, setAiPrompt] = useState('');
 
   // ── Create form state
   const [newName, setNewName] = useState('');
@@ -106,14 +118,31 @@ export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
     }
   };
 
+  const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Describe what workflow you want');
+      return;
+    }
+    try {
+      const result = await generateWorkflow(aiPrompt);
+      toast.success(`AI created workflow "${result.generated?.name}" with ${result.generated?.steps?.length || 0} steps`);
+      setAiPrompt('');
+      setViewMode('list');
+    } catch (err) {
+      toast.error('AI workflow generation failed');
+    }
+  };
+
   const handleExecute = async (id: string) => {
     setExecutingId(id);
+    setLastExecutionResult(null);
     try {
       const result = await executeWorkflow(id);
+      setLastExecutionResult(result);
       if (result.success) {
-        toast.success(`Workflow completed: ${result.stepResults?.filter((s: { status: string }) => s.status === 'completed').length}/${result.stepResults?.length} steps`);
+        toast.success(`Workflow completed: ${result.stepResults?.filter((s: { status: string }) => s.status === 'completed').length}/${result.stepResults?.length} steps (AI-reasoned)`);
       } else {
-        toast.warning(`Workflow ${result.status}: ${result.stepResults?.filter((s: { status: string }) => s.status === 'completed').length}/${result.stepResults?.length} steps completed`);
+        toast.warning(`Workflow ${result.status}: ${result.stepResults?.filter((s: { status: string }) => s.status === 'completed').length}/${result.stepResults?.length} steps`);
       }
     } catch {
       toast.error('Workflow execution failed');
@@ -126,7 +155,7 @@ export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
     setExecutingStepId(stepId);
     try {
       const result = await executeStep(stepId);
-      toast.success(result.success ? 'Step executed' : 'Step failed');
+      toast.success(result.success ? `Step executed (AI confidence: ${(result.aiReasoning?.confidence * 100).toFixed(0)}%)` : 'Step failed');
     } catch {
       toast.error('Step execution failed');
     } finally {
@@ -197,24 +226,85 @@ export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
             </Button>
           )}
           {viewMode === 'list' && (
-            <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={() => setViewMode('create')}>
-              <Plus className="w-3 h-3" /> New
-            </Button>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={() => setViewMode('ai_generate')}>
+                <Brain className="w-3 h-3" /> AI Create
+              </Button>
+              <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={() => setViewMode('create')}>
+                <Plus className="w-3 h-3" /> Manual
+              </Button>
+            </div>
           )}
         </div>
       </div>
 
       <ScrollArea className="max-h-[500px]">
         <div className="p-3 space-y-3">
+          {/* ── AI Generate View ──────────────────────── */}
+          {viewMode === 'ai_generate' && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-primary/20 p-3 space-y-1" style={{ background: 'hsl(var(--primary) / 0.05)' }}>
+                <div className="flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-primary" />
+                  <span className="text-[12px] font-bold text-foreground">AI Workflow Architect</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Describe what you want in natural language. AI will design the workflow, assign agents, and configure each step.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">What should this workflow do?</label>
+                <Textarea
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
+                  placeholder="e.g., When a new client signs up, send a welcome email, create an onboarding task, assign to the Client Success agent, and schedule a follow-up call in 7 days..."
+                  className="min-h-[100px] text-[12px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] text-muted-foreground">💡 Try these:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Onboard new client with welcome email and follow-up',
+                    'Monthly client health check with AI analysis and report',
+                    'High-risk churn intervention with escalation',
+                    'Renewal workflow with approval gate',
+                  ].map(suggestion => (
+                    <button
+                      key={suggestion}
+                      className="text-[9px] px-2 py-1 rounded-full border border-border/40 text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                      onClick={() => setAiPrompt(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Button className="w-full h-8 text-[12px] font-semibold gap-1" onClick={handleAIGenerate} disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {isGenerating ? 'AI is designing your workflow...' : 'Generate Workflow with AI'}
+              </Button>
+            </div>
+          )}
+
           {/* ── List View ─────────────────────────────── */}
           {viewMode === 'list' && (
             workflows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <WorkflowIcon className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
                 <p className="text-xs text-muted-foreground">No workflows yet</p>
-                <Button size="sm" variant="outline" className="mt-3 h-7 text-[11px] gap-1" onClick={() => setViewMode('create')}>
-                  <Plus className="w-3 h-3" /> Create Workflow
-                </Button>
+                <p className="text-[10px] text-muted-foreground mt-1">Let AI design workflows or create manually</p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" variant="default" className="h-7 text-[11px] gap-1" onClick={() => setViewMode('ai_generate')}>
+                    <Brain className="w-3 h-3" /> AI Create
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={() => setViewMode('create')}>
+                    <Plus className="w-3 h-3" /> Manual
+                  </Button>
+                </div>
               </div>
             ) : (
               workflows.map(wf => (
@@ -341,6 +431,7 @@ export function WorkflowsPanel({ className }: WorkflowsPanelProps) {
               workflow={selectedWorkflow}
               isExecuting={executingId === selectedWorkflow.id}
               executingStepId={executingStepId}
+              executionResult={lastExecutionResult}
               onExecute={() => handleExecute(selectedWorkflow.id)}
               onExecuteStep={handleExecuteStep}
               onDelete={() => handleDelete(selectedWorkflow.id)}
@@ -395,7 +486,6 @@ function WorkflowCard({
         </div>
       </div>
 
-      {/* Progress bar */}
       {steps.length > 0 && (
         <div className="space-y-1">
           <div className="h-1 rounded-full bg-muted overflow-hidden">
@@ -412,7 +502,6 @@ function WorkflowCard({
         </div>
       )}
 
-      {/* Compact step list */}
       <div className="flex flex-wrap gap-1">
         {steps.slice(0, 5).map((step, i) => {
           const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG.not_started;
@@ -430,19 +519,68 @@ function WorkflowCard({
   );
 }
 
+// ── AI Reasoning Badge ────────────────────────────────────────────────────────
+
+function AIReasoningBadge({ reasoning }: { reasoning: { interpretation: string; approach: string; riskAssessment: string; confidence: number } }) {
+  const confidence = reasoning.confidence || 0;
+  const color = confidence >= 0.8 ? 'text-exec-success' : confidence >= 0.5 ? 'text-amber-500' : 'text-exec-danger';
+
+  return (
+    <Collapsible>
+      <CollapsibleTrigger asChild>
+        <button className="flex items-center gap-1 text-[9px] text-primary/80 hover:text-primary transition-colors">
+          <Brain className="w-3 h-3" />
+          AI Reasoning ({(confidence * 100).toFixed(0)}%)
+          <ChevronDown className="w-2.5 h-2.5" />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-1.5 rounded-md border border-primary/15 p-2 space-y-1.5" style={{ background: 'hsl(var(--primary) / 0.04)' }}>
+          <div className="flex items-start gap-1.5">
+            <MessageSquare className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+            <p className="text-[10px] text-foreground/80">{reasoning.interpretation}</p>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <ArrowRight className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+            <p className="text-[10px] text-muted-foreground">Approach: <span className="text-foreground/70">{reasoning.approach}</span></p>
+          </div>
+          <div className="flex items-start gap-1.5">
+            <Shield className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+            <p className="text-[10px] text-muted-foreground">Risk: <span className="text-foreground/70">{reasoning.riskAssessment}</span></p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-primary shrink-0" />
+            <span className={cn('text-[10px] font-semibold', color)}>Confidence: {(confidence * 100).toFixed(0)}%</span>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 // ── Workflow Detail View ──────────────────────────────────────────────────────
 
 function WorkflowDetailView({
-  workflow, isExecuting, executingStepId, onExecute, onExecuteStep, onDelete,
+  workflow, isExecuting, executingStepId, executionResult, onExecute, onExecuteStep, onDelete,
 }: {
   workflow: WorkflowWithSteps;
   isExecuting: boolean;
   executingStepId: string | null;
+  executionResult: Record<string, unknown> | null;
   onExecute: () => void;
   onExecuteStep: (stepId: string) => void;
   onDelete: () => void;
 }) {
   const steps = workflow.workflow_steps || [];
+  const stepResults = (executionResult?.stepResults || []) as Array<{
+    stepId: string;
+    stepName: string;
+    status: string;
+    aiReasoning?: { interpretation: string; approach: string; riskAssessment: string; confidence: number };
+    output?: Record<string, unknown>;
+    duration_ms?: number;
+    error?: string;
+  }>;
 
   return (
     <div className="space-y-4">
@@ -461,6 +599,10 @@ function WorkflowDetailView({
             <Zap className="w-3 h-3" />
             {workflow.execution_count || 0} executions
           </Badge>
+          <Badge variant="outline" className="text-[9px] gap-1">
+            <Brain className="w-3 h-3" />
+            AI-Reasoned
+          </Badge>
           {workflow.last_executed_at && (
             <Badge variant="outline" className="text-[9px]">
               Last: {new Date(workflow.last_executed_at).toLocaleDateString()}
@@ -469,11 +611,32 @@ function WorkflowDetailView({
         </div>
       </div>
 
+      {/* Execution Result Summary */}
+      {executionResult && (
+        <div className={cn(
+          'rounded-lg border p-2.5 space-y-1',
+          executionResult.success ? 'border-exec-success/30 bg-exec-success/5' : 'border-exec-danger/30 bg-exec-danger/5'
+        )}>
+          <div className="flex items-center gap-2">
+            {executionResult.success ? <Check className="w-3.5 h-3.5 text-exec-success" /> : <AlertCircle className="w-3.5 h-3.5 text-exec-danger" />}
+            <span className="text-[11px] font-semibold text-foreground">
+              {executionResult.success ? 'Workflow Completed' : `Workflow ${executionResult.status}`}
+            </span>
+            <span className="text-[9px] text-muted-foreground ml-auto">{executionResult.duration_ms}ms</span>
+          </div>
+          {executionResult.contextChainDepth && (
+            <p className="text-[10px] text-muted-foreground">
+              Context chain: {String(executionResult.contextChainDepth)} steps linked • AI-reasoned execution
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Execute / Delete controls */}
       <div className="flex gap-2">
         <Button className="flex-1 h-8 text-[11px] font-semibold gap-1" onClick={onExecute} disabled={isExecuting}>
-          {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-          Execute All Steps
+          {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Brain className="w-3 h-3" /><Play className="w-3 h-3" /></>}
+          {isExecuting ? 'AI Reasoning & Executing...' : 'Execute with AI'}
         </Button>
         <Button variant="destructive" size="sm" className="h-8 text-[11px]" onClick={onDelete}>
           <Trash2 className="w-3 h-3" />
@@ -487,6 +650,7 @@ function WorkflowDetailView({
           const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG.not_started;
           const isStepExecuting = executingStepId === step.id;
           const actionType = ACTION_TYPES.find(a => a.value === step.action_type);
+          const stepResult = stepResults.find(r => r.stepId === step.id);
 
           return (
             <div key={step.id} className="relative">
@@ -514,20 +678,33 @@ function WorkflowDetailView({
                 </div>
 
                 {/* Step content */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">{actionType?.icon || '⚙️'}</span>
                     <span className="text-[12px] font-semibold text-foreground truncate">{step.name}</span>
                   </div>
                   {step.description && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{step.description}</p>
+                    <p className="text-[10px] text-muted-foreground">{step.description}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2">
                     <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded-full', cfg.className)}>
                       {step.status.replace('_', ' ')}
                     </span>
                     <span className="text-[9px] text-muted-foreground">{actionType?.label || step.action_type}</span>
+                    {stepResult?.duration_ms && (
+                      <span className="text-[9px] text-muted-foreground">{stepResult.duration_ms}ms</span>
+                    )}
                   </div>
+
+                  {/* AI Reasoning display */}
+                  {stepResult?.aiReasoning && (
+                    <AIReasoningBadge reasoning={stepResult.aiReasoning} />
+                  )}
+
+                  {/* Error */}
+                  {stepResult?.error && (
+                    <p className="text-[9px] text-exec-danger mt-1">⚠ {stepResult.error}</p>
+                  )}
                 </div>
 
                 {/* Step actions */}
@@ -540,7 +717,7 @@ function WorkflowDetailView({
                       onClick={() => onExecuteStep(step.id)}
                       disabled={isStepExecuting}
                     >
-                      {isStepExecuting ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <><Sparkles className="w-2.5 h-2.5" />Run</>}
+                      {isStepExecuting ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <><Brain className="w-2.5 h-2.5" />Run</>}
                     </Button>
                   )}
                 </div>
