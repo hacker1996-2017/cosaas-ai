@@ -74,7 +74,7 @@ export function RightPanel({ children, className }: RightPanelProps) {
       {/* Panel content */}
       {!collapsed && (
         <ScrollArea className="h-full flex-1 min-w-0">
-          <div className="p-3 pt-10 space-y-2 break-words overflow-wrap-anywhere min-w-0 max-w-full overflow-x-hidden [&>*]:w-full [&>*]:max-w-full">{children}</div>
+          <div className="p-3 pt-10 space-y-2 break-words overflow-wrap-anywhere min-w-0 max-w-full overflow-x-hidden [&>*]:w-full [&>*]:max-w-full [&_button]:max-w-full [&_button]:truncate [&_p]:break-words [&_span]:break-words">{children}</div>
         </ScrollArea>
       )}
     </aside>
