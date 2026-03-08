@@ -8,6 +8,8 @@
    full_name: string | null;
    organization_id: string | null;
    avatar_url: string | null;
+   phone: string | null;
+   timezone: string | null;
  }
  
  export function useUserProfile() {
