@@ -622,7 +622,7 @@ function WorkflowDetailView({
             <span className="text-[11px] font-semibold text-foreground">
               {executionResult.success ? 'Workflow Completed' : `Workflow ${executionResult.status}`}
             </span>
-            <span className="text-[9px] text-muted-foreground ml-auto">{executionResult.duration_ms}ms</span>
+            <span className="text-[9px] text-muted-foreground ml-auto">{String(executionResult.duration_ms)}ms</span>
           </div>
           {executionResult.contextChainDepth && (
             <p className="text-[10px] text-muted-foreground">
