@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.integration-sync]
 verify_jwt = false
+
+[functions.reconcile-insurance]
+verify_jwt = false
