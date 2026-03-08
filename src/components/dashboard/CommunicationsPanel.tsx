@@ -83,6 +83,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
 
   const handleAIReply = async (emailId: string) => {
     try {
+      const origEmail = emails.find(e => e.id === emailId);
       const result = await generateReply({
         replyToEmailId: emailId,
         context: aiContext || undefined,
@@ -93,6 +94,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
           subject: result.subject || '',
           body: result.draft,
           from: 'onboarding@resend.dev',
+          thread_id: origEmail?.thread_id || origEmail?.id || '',
         });
         setIsEmailDialogOpen(true);
         toast.success('AI reply drafted');
