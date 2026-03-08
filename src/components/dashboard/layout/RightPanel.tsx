@@ -56,7 +56,7 @@ export function RightPanel({ children, className }: RightPanelProps) {
     <aside
       className={cn(
         'border-l border-border transition-all duration-300 relative flex flex-col min-w-0 w-full max-w-full overflow-x-hidden overflow-y-hidden',
-        collapsed ? 'md:w-12 md:justify-self-end' : 'w-full',
+        collapsed ? 'md:w-12 md:justify-self-end' : 'w-full md:max-w-[240px] md:justify-self-end',
         className
       )}
     >
