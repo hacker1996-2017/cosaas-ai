@@ -47,9 +47,16 @@ export function useEmails(clientId?: string) {
 
       if (!profile?.organization_id) throw new Error('No organization found');
 
+      const emailId = crypto.randomUUID();
+
       const { data, error } = await supabase
         .from('emails')
-        .insert({ ...email, organization_id: profile.organization_id })
+        .insert({
+          ...email,
+          id: emailId,
+          thread_id: email.thread_id || emailId,
+          organization_id: profile.organization_id,
+        })
         .select()
         .single();
 
