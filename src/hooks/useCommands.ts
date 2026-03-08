@@ -21,9 +21,15 @@ interface ProcessCommandResult {
   assignedAgent?: { id: string; name: string };
   decision?: { id: string; title: string };
   pipelineAction?: { id: string; status: string };
-  status: 'pending_decision' | 'approved' | 'routed' | 'error';
+  status: 'pending_decision' | 'approved' | 'routed' | 'executed' | 'error';
+  dispatched?: boolean;
+  executionResult?: {
+    success: boolean;
+    duration_ms?: number;
+    evidence?: Record<string, unknown>;
+    outputData?: Record<string, unknown>;
+  } | null;
 }
-
 export function useCommands() {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();

@@ -80,6 +80,8 @@ export function useDecisions() {
     queryClient.invalidateQueries({ queryKey: ['commands', user?.id] });
     queryClient.invalidateQueries({ queryKey: ['timeline_events', user?.id] });
     queryClient.invalidateQueries({ queryKey: ['agents', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['action_pipeline', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['audit_log', user?.id] });
 
     return response.data as ExecuteDecisionResult;
   };
