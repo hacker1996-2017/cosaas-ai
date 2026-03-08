@@ -137,13 +137,14 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       const created = await createEmail({
         to_addresses: recipients, subject: newEmail.subject.trim(),
         body_text: newEmail.body.trim(), from_address: newEmail.from.trim(), status: 'draft',
+        thread_id: newEmail.thread_id || undefined,
       });
       if (created?.id) {
         await sendEmail(created.id);
         toast.success('Email sent!');
       }
       setIsEmailDialogOpen(false);
-      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
+      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev', thread_id: '' });
       setAiContext('');
     } catch (err: any) { toast.error(err.message || 'Failed to send email'); }
   };
