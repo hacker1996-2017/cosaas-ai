@@ -16,6 +16,7 @@ import { useCalls } from '@/hooks/useCalls';
 import { useMessages, Message } from '@/hooks/useMessages';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIEmail } from '@/hooks/useAIEmail';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
