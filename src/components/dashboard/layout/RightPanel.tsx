@@ -51,12 +51,12 @@ export function RightPanel({ children, className }: RightPanelProps) {
     );
   }
 
-  // Desktop: collapsible side panel — fills remaining space
+  // Desktop: collapsible side panel — constrained to its grid column
   return (
     <aside
       className={cn(
-        'border-l border-border transition-all duration-300 relative flex flex-col min-w-0 w-full max-w-full overflow-x-hidden overflow-y-hidden md:justify-self-end',
-        collapsed ? 'md:w-10 md:max-w-[2.5rem]' : 'w-full md:w-full md:max-w-[clamp(320px,33vw,460px)] lg:max-w-[clamp(340px,33vw,480px)]',
+        'relative flex flex-col min-w-0 w-full overflow-hidden border-l border-border transition-all duration-300',
+        collapsed && 'max-w-[2.5rem]',
         className
       )}
     >
@@ -74,7 +74,7 @@ export function RightPanel({ children, className }: RightPanelProps) {
       {/* Panel content */}
       {!collapsed && (
         <ScrollArea className="h-full flex-1 min-w-0">
-          <div className="p-3 pt-10 space-y-2 min-w-0 max-w-full overflow-x-hidden [&_*]:max-w-full [&_*]:min-w-0 [&>*]:w-full [&_.panel]:w-full [&_.panel]:overflow-hidden [&_.panel-header]:text-[10px] [&_.panel-header]:px-2.5 [&_.panel-header]:py-2 [&_p]:break-words [&_span]:break-words [&_h4]:break-words [&_.p-3]:p-2 [&_.space-y-3]:space-y-2 [&_.space-y-2\\.5]:space-y-1.5 [&_button]:!whitespace-normal [&_button]:!break-words [&_button]:!leading-tight [&_button]:!h-auto [&_button]:!min-h-7 [&_button]:!py-1 [&_button]:!px-2 [&_button]:max-w-full">{children}</div>
+          <div className="p-3 pt-10 space-y-2 min-w-0 overflow-hidden">{children}</div>
         </ScrollArea>
       )}
     </aside>
