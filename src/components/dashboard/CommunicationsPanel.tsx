@@ -79,7 +79,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
           to: result.replyTo || '',
           subject: result.subject || '',
           body: result.draft,
-          from: 'ceo@company.com',
+          from: 'onboarding@resend.dev',
         });
         setIsEmailDialogOpen(true);
         toast.success('AI reply drafted');
