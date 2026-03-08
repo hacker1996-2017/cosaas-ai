@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
+import { NotificationCenter } from './NotificationCenter';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
