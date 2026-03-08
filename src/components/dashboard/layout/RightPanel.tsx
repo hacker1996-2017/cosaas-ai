@@ -74,16 +74,7 @@ export function RightPanel({ children, className }: RightPanelProps) {
       {/* Panel content */}
       {!collapsed && (
         <ScrollArea className="h-full flex-1 min-w-0">
-          <div className="p-3 pt-10 space-y-2 min-w-0 max-w-full overflow-x-hidden
-            [&>*]:w-full [&>*]:max-w-full [&>*]:overflow-hidden
-            [&_.panel]:w-full [&_.panel]:max-w-full [&_.panel]:overflow-hidden
-            [&_.panel-header]:text-[10px] [&_.panel-header]:px-2.5 [&_.panel-header]:py-2
-            [&_p]:break-words [&_p]:overflow-hidden [&_p]:text-ellipsis
-            [&_span]:break-words
-            [&_h4]:break-words [&_h4]:overflow-hidden [&_h4]:text-ellipsis
-            [&_.p-3]:p-2 [&_.space-y-3]:space-y-2 [&_.space-y-2\\.5]:space-y-1.5
-            [&_button]:overflow-hidden [&_button]:text-ellipsis
-          ">{children}</div>
+          <div className="p-3 pt-10 space-y-2 min-w-0 max-w-full overflow-x-hidden [&_*]:max-w-full [&_*]:min-w-0 [&>*]:w-full [&_.panel]:w-full [&_.panel]:overflow-hidden [&_.panel-header]:text-[10px] [&_.panel-header]:px-2.5 [&_.panel-header]:py-2 [&_p]:break-words [&_span]:break-words [&_h4]:break-words [&_.p-3]:p-2 [&_.space-y-3]:space-y-2 [&_.space-y-2\\.5]:space-y-1.5 [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-7 [&_button]:py-1">{children}</div>
         </ScrollArea>
       )}
     </aside>
