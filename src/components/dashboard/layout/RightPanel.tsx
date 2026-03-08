@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   ShieldCheck, GitBranch, Building2, Clock, MessageSquare, 
-  BarChart3, FileText, PanelRightClose, PanelRightOpen, Calendar, Users 
+  BarChart3, FileText, PanelRightClose, PanelRightOpen, Calendar, Users, LineChart 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
