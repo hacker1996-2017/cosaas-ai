@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings, Search, User, Building2, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { NotificationCenter } from './NotificationCenter';
+import { CommandPalette } from './CommandPalette';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
@@ -23,6 +25,19 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { organization } = useOrganization();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Global ⌘K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -82,12 +97,11 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
 
         {/* Center: Search */}
         <div className="flex-1 max-w-md mx-6 hidden md:block">
-          <div className="relative">
+          <div className="relative cursor-pointer" onClick={() => setCommandPaletteOpen(true)}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search commands, clients, decisions..."
-              className="pl-9 h-9 bg-secondary/50 border-border/30 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30 focus-visible:border-primary/40"
-            />
+            <div className="pl-9 h-9 bg-secondary/50 border border-border/30 rounded-md text-sm text-muted-foreground/60 flex items-center hover:border-primary/40 transition-colors">
+              Search commands, clients, decisions...
+            </div>
             <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 items-center gap-0.5 rounded border border-border/50 bg-background/50 px-1.5 font-mono text-[10px] text-muted-foreground">
               ⌘K
             </kbd>
@@ -141,6 +155,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
           </DropdownMenu>
         </div>
       </div>
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </header>
   );
 }

@@ -8,6 +8,8 @@
    full_name: string | null;
    organization_id: string | null;
    avatar_url: string | null;
+   phone: string | null;
+   timezone: string | null;
  }
  
  export function useUserProfile() {
@@ -27,7 +29,7 @@
        try {
          const { data, error } = await supabase
            .from('profiles')
-           .select('id, email, full_name, organization_id, avatar_url')
+           .select('id, email, full_name, organization_id, avatar_url, phone, timezone')
            .eq('id', user.id)
            .single();
  
