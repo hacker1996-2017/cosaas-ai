@@ -85,8 +85,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               {organization ? (
                 <>
-                  <Building2 className="w-3 h-3" />
-                  <span className="truncate max-w-32">{organization.name}</span>
+                  <OrgSwitcher />
                   <span className="text-border">·</span>
                   <span className="text-exec-gold font-medium">{organization.industry || 'General'}</span>
                 </>
