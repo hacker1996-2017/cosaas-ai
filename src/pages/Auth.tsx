@@ -17,6 +17,7 @@ const passwordSchema = z.string().min(6, 'Password must be at least 6 characters
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading, signIn, signUp } = useAuth();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,13 +25,18 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const redirectTo = searchParams.get('redirect') || '/';
 
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, redirectTo]);
 
   const validateInputs = () => {
     const newErrors: { email?: string; password?: string } = {};
