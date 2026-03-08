@@ -42,7 +42,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const [aiContext, setAiContext] = useState('');
 
   const [newEmail, setNewEmail] = useState({
-    to: '', subject: '', body: '', from: 'ceo@company.com',
+    to: '', subject: '', body: '', from: 'onboarding@resend.dev',
   });
   const [newCall, setNewCall] = useState({
     callee_number: '', summary: '',
@@ -79,7 +79,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
           to: result.replyTo || '',
           subject: result.subject || '',
           body: result.draft,
-          from: 'ceo@company.com',
+          from: 'onboarding@resend.dev',
         });
         setIsEmailDialogOpen(true);
         toast.success('AI reply drafted');
@@ -108,7 +108,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
       });
       toast.success('Email draft created');
       setIsEmailDialogOpen(false);
-      setNewEmail({ to: '', subject: '', body: '', from: 'ceo@company.com' });
+      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
       setAiContext('');
     } catch { toast.error('Failed to create email'); }
   };
@@ -125,7 +125,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
         toast.success('Email sent!');
       }
       setIsEmailDialogOpen(false);
-      setNewEmail({ to: '', subject: '', body: '', from: 'ceo@company.com' });
+      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
       setAiContext('');
     } catch { toast.error('Failed to send email'); }
   };
