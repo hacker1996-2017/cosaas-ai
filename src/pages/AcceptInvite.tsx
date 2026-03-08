@@ -127,8 +127,8 @@ export default function AcceptInvite() {
 
         {status === 'success' && (
           <>
-            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
+            <div className="w-12 h-12 rounded-full bg-accent-success/10 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6 text-accent-success" />
             </div>
             <h2 className="text-lg font-semibold text-foreground">Welcome to the Team!</h2>
             <p className="text-sm text-muted-foreground">

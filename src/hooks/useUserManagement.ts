@@ -160,7 +160,7 @@ export function useUserManagement() {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
+        .update({ role: newRole as any })
         .eq('user_id', userId)
         .eq('organization_id', orgId);
       if (error) throw error;
