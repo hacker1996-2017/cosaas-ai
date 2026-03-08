@@ -1,82 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Chief of Staff AI — Executive OS Dark Theme Design System */
+/* Chief of Staff AI — Fortune 500 Executive OS */
 
 @layer base {
   :root {
-    /* Executive OS Dark Theme - Primary Palette */
-    --bg-dark: 216 52% 9%;
-    --bg-panel: 218 47% 12%;
-    --bg-soft: 220 43% 16%;
-    --bg-hover: 220 40% 20%;
-    
-    /* Primary Brand Colors */
-    --primary: 210 100% 65%;
+    /* Deep executive dark palette */
+    --bg-dark: 222 47% 6%;
+    --bg-panel: 220 40% 10%;
+    --bg-soft: 222 35% 14%;
+    --bg-hover: 222 30% 18%;
+    --bg-elevated: 220 38% 12%;
+
+    /* Primary — electric sapphire */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 210 100% 70%;
-    
-    /* Semantic Colors */
-    --accent-success: 142 71% 45%;
-    --accent-warning: 38 92% 50%;
-    --accent-danger: 0 84% 60%;
-    --accent-info: 210 100% 65%;
-    
-    /* Text Colors */
-    --text-main: 220 14% 90%;
-    --text-muted: 220 9% 63%;
-    --text-dim: 220 7% 45%;
-    
-    /* Apply to semantic tokens */
+    --primary-glow: 217 100% 70%;
+    --primary-muted: 217 60% 25%;
+
+    /* Executive gold accent */
+    --gold: 40 76% 55%;
+    --gold-muted: 40 40% 20%;
+
+    /* Semantic status */
+    --accent-success: 152 60% 48%;
+    --accent-warning: 36 100% 57%;
+    --accent-danger: 0 72% 56%;
+    --accent-info: 217 91% 60%;
+
+    /* Text hierarchy */
+    --text-main: 220 20% 93%;
+    --text-secondary: 220 12% 72%;
+    --text-muted: 220 10% 50%;
+    --text-dim: 220 8% 35%;
+
+    /* Semantic tokens */
     --background: var(--bg-dark);
     --foreground: var(--text-main);
-    
+
     --card: var(--bg-panel);
     --card-foreground: var(--text-main);
-    
-    --popover: var(--bg-panel);
+
+    --popover: var(--bg-elevated);
     --popover-foreground: var(--text-main);
-    
+
     --secondary: var(--bg-soft);
     --secondary-foreground: var(--text-main);
-    
+
     --muted: var(--bg-soft);
     --muted-foreground: var(--text-muted);
-    
+
     --accent: var(--bg-hover);
     --accent-foreground: var(--text-main);
-    
+
     --destructive: var(--accent-danger);
     --destructive-foreground: 0 0% 100%;
-    
-    --border: 220 30% 20%;
-    --input: 220 30% 20%;
+
+    --border: 222 20% 16%;
+    --input: 222 20% 16%;
     --ring: var(--primary);
-    
-    --radius: 0.75rem;
-    
-    /* Sidebar - Darker gradient */
-    --sidebar-background: 220 55% 6%;
+
+    --radius: 0.625rem;
+
+    /* Sidebar */
+    --sidebar-background: 224 50% 5%;
     --sidebar-foreground: var(--text-main);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: var(--bg-soft);
     --sidebar-accent-foreground: var(--text-main);
-    --sidebar-border: 220 30% 15%;
+    --sidebar-border: 222 20% 12%;
     --sidebar-ring: var(--primary);
 
-    /* Chart colors */
-    --chart-1: 210 100% 65%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 38 92% 50%;
+    /* Chart */
+    --chart-1: 217 91% 60%;
+    --chart-2: 152 60% 48%;
+    --chart-3: 36 100% 57%;
     --chart-4: 280 65% 60%;
-    --chart-5: 0 84% 60%;
+    --chart-5: 0 72% 56%;
+
+    /* Shadows */
+    --shadow-panel: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 4px 16px -2px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 4px 24px -4px hsl(0 0% 0% / 0.5), 0 12px 48px -8px hsl(217 91% 60% / 0.05);
+    --shadow-glow: 0 0 24px -4px hsl(217 91% 60% / 0.15);
   }
 
-  /* Force dark mode always for Executive OS */
-  .dark,
-  :root {
+  .dark, :root {
     color-scheme: dark;
   }
 }
@@ -88,119 +100,157 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    letter-spacing: -0.01em;
   }
 
-  /* Prevent any element from blowing out the viewport */
   .overflow-wrap-anywhere {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
-  /* Custom scrollbar for dark theme */
+  /* Premium scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--bg-dark));
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--bg-soft));
-    border-radius: 4px;
+    background: hsl(var(--bg-hover));
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--bg-hover));
+    background: hsl(var(--text-dim));
   }
 }
 
 @layer components {
-  /* Executive OS Panel Styles */
+  /* ===== PANEL SYSTEM ===== */
   .panel {
-    @apply rounded-xl bg-card border border-border/50 backdrop-blur-sm;
+    @apply rounded-xl border border-border/60 backdrop-blur-sm;
+    background: linear-gradient(
+      168deg,
+      hsl(var(--bg-panel)) 0%,
+      hsl(var(--bg-panel) / 0.85) 100%
+    );
+    box-shadow: var(--shadow-panel);
   }
 
   .panel-header {
-    @apply text-sm font-semibold text-foreground px-4 py-3 border-b border-border/50;
+    @apply text-xs font-semibold uppercase tracking-widest px-4 py-3 border-b border-border/40;
+    color: hsl(var(--text-secondary));
+    letter-spacing: 0.08em;
   }
 
-  /* Agent Card Styles */
+  /* ===== AGENT CARDS ===== */
   .agent-card {
-    @apply panel p-3 cursor-pointer transition-all duration-200 hover:border-primary/50;
+    @apply panel p-3 cursor-pointer transition-all duration-200;
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .agent-card:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
   }
 
   .agent-card.active {
-    @apply border-primary shadow-lg shadow-primary/20;
+    border-color: hsl(var(--primary) / 0.6);
+    box-shadow: var(--shadow-glow), inset 0 0 0 1px hsl(var(--primary) / 0.1);
   }
 
-  /* Status Indicators */
+  /* ===== STATUS INDICATORS ===== */
   .status-dot {
     @apply w-2 h-2 rounded-full;
   }
 
   .status-dot.available {
-    @apply bg-[hsl(var(--accent-success))] shadow-[0_0_8px_hsl(var(--accent-success)/0.6)];
+    background: hsl(var(--accent-success));
+    box-shadow: 0 0 6px hsl(var(--accent-success) / 0.5);
   }
 
   .status-dot.busy {
-    @apply bg-[hsl(var(--accent-warning))] shadow-[0_0_8px_hsl(var(--accent-warning)/0.6)];
+    background: hsl(var(--accent-warning));
+    box-shadow: 0 0 6px hsl(var(--accent-warning) / 0.5);
   }
 
   .status-dot.error {
-    @apply bg-[hsl(var(--accent-danger))] shadow-[0_0_8px_hsl(var(--accent-danger)/0.6)];
+    background: hsl(var(--accent-danger));
+    box-shadow: 0 0 6px hsl(var(--accent-danger) / 0.5);
   }
 
-  /* Badge Styles */
+  /* ===== BADGES ===== */
   .badge-success {
-    @apply bg-[hsl(var(--accent-success)/0.15)] text-[hsl(var(--accent-success))] border border-[hsl(var(--accent-success)/0.3)];
+    @apply border;
+    background: hsl(var(--accent-success) / 0.12);
+    color: hsl(var(--accent-success));
+    border-color: hsl(var(--accent-success) / 0.2);
   }
 
   .badge-warning {
-    @apply bg-[hsl(var(--accent-warning)/0.15)] text-[hsl(var(--accent-warning))] border border-[hsl(var(--accent-warning)/0.3)];
+    @apply border;
+    background: hsl(var(--accent-warning) / 0.12);
+    color: hsl(var(--accent-warning));
+    border-color: hsl(var(--accent-warning) / 0.2);
   }
 
   .badge-danger {
-    @apply bg-[hsl(var(--accent-danger)/0.15)] text-[hsl(var(--accent-danger))] border border-[hsl(var(--accent-danger)/0.3)];
+    @apply border;
+    background: hsl(var(--accent-danger) / 0.12);
+    color: hsl(var(--accent-danger));
+    border-color: hsl(var(--accent-danger) / 0.2);
   }
 
   .badge-info {
-    @apply bg-[hsl(var(--accent-info)/0.15)] text-[hsl(var(--accent-info))] border border-[hsl(var(--accent-info)/0.3)];
+    @apply border;
+    background: hsl(var(--accent-info) / 0.12);
+    color: hsl(var(--accent-info));
+    border-color: hsl(var(--accent-info) / 0.2);
   }
 
-  /* Chat Bubbles */
+  /* ===== CHAT BUBBLES ===== */
   .chat-bubble {
-    @apply max-w-[80%] rounded-2xl px-4 py-3 text-sm;
+    @apply max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed;
   }
 
   .chat-bubble.ceo {
-    @apply bg-primary text-primary-foreground ml-auto rounded-br-md;
+    @apply ml-auto rounded-br-md;
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 2px 12px -2px hsl(var(--primary) / 0.3);
   }
 
   .chat-bubble.ai {
-    @apply bg-card border border-border mr-auto rounded-bl-md;
+    @apply mr-auto rounded-bl-md;
+    background: hsl(var(--bg-elevated));
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
-  /* Confidence Bar */
+  /* ===== CONFIDENCE BAR ===== */
   .confidence-bar {
-    @apply h-1.5 rounded-full bg-secondary overflow-hidden;
+    @apply h-1 rounded-full overflow-hidden;
+    background: hsl(var(--bg-soft));
   }
 
   .confidence-bar-fill {
     @apply h-full rounded-full transition-all duration-500;
   }
 
-  /* Timeline Styles */
+  /* ===== TIMELINE ===== */
   .timeline-item {
     @apply relative pl-6 pb-4;
   }
 
   .timeline-item::before {
     content: '';
-    @apply absolute left-[7px] top-6 bottom-0 w-px bg-border;
+    @apply absolute left-[7px] top-6 bottom-0 w-px;
+    background: linear-gradient(180deg, hsl(var(--border)) 0%, transparent 100%);
   }
 
   .timeline-item:last-child::before {
@@ -211,44 +261,84 @@
     @apply absolute left-0 top-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px];
   }
 
-  /* Decision Card */
+  /* ===== DECISION CARDS ===== */
   .decision-card {
     @apply panel p-4 space-y-3;
   }
 
   .decision-card.low {
-    @apply border-l-4 border-l-[hsl(var(--accent-success))];
+    border-left: 3px solid hsl(var(--accent-success));
   }
 
   .decision-card.medium {
-    @apply border-l-4 border-l-[hsl(var(--accent-warning))];
+    border-left: 3px solid hsl(var(--accent-warning));
   }
 
   .decision-card.high {
-    @apply border-l-4 border-l-[hsl(var(--accent-danger))];
+    border-left: 3px solid hsl(var(--accent-danger));
   }
 
-  /* Glow Effects */
+  /* ===== GLOW EFFECTS ===== */
   .glow-primary {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.2);
   }
 
   .glow-success {
-    box-shadow: 0 0 20px hsl(var(--accent-success) / 0.3);
+    box-shadow: 0 0 24px -4px hsl(var(--accent-success) / 0.2);
   }
 
-  /* Gradient Backgrounds */
+  /* ===== GRADIENT BACKGROUNDS ===== */
   .gradient-sidebar {
-    background: linear-gradient(180deg, hsl(var(--bg-dark)) 0%, hsl(220 60% 4%) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(224 50% 5%) 0%,
+      hsl(224 55% 3%) 100%
+    );
   }
 
   .gradient-panel {
-    background: linear-gradient(135deg, hsl(var(--bg-panel)) 0%, hsl(var(--bg-soft) / 0.5) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--bg-panel)) 0%,
+      hsl(var(--bg-soft) / 0.5) 100%
+    );
+  }
+
+  /* ===== STAT CARDS ===== */
+  .stat-card {
+    @apply relative overflow-hidden rounded-lg p-3;
+    background: hsl(var(--bg-soft) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  .stat-card::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, transparent 60%);
+  }
+
+  .stat-card:hover::after {
+    @apply opacity-100;
+  }
+
+  /* ===== MONO TEXT ===== */
+  .font-mono-exec {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
 @layer utilities {
   .text-gradient-primary {
-    @apply bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary-glow))] bg-clip-text text-transparent;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(40 90% 65%) 100%);
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, hsl(var(--primary) / 0.3), transparent) 1;
   }
 }
