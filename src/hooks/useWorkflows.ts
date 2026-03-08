@@ -102,14 +102,13 @@ export function useWorkflows() {
 
       // Create steps
       if (data.steps.length > 0) {
-        const stepsToInsert: WorkflowStepInsert[] = data.steps.map((step, index) => ({
+        const stepsToInsert = data.steps.map((step, index) => ({
           workflow_id: workflow.id,
           name: step.name,
           description: step.description || null,
           action_type: step.action_type,
-          action_config: step.action_config || {},
+          action_config: (step.action_config || {}) as Database['public']['Tables']['workflow_steps']['Insert']['action_config'],
           step_number: index + 1,
-          status: 'not_started' as const,
           agent_id: step.agent_id || null,
           ai_assist_available: true,
         }));
