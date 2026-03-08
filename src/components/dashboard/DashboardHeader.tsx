@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings, Search, User, Building2, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { NotificationCenter } from './NotificationCenter';
+import { CommandPalette } from './CommandPalette';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
