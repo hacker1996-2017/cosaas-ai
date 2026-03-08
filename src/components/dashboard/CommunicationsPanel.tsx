@@ -475,83 +475,141 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
           )}
         </TabsContent>
 
-        {/* ── Emails with AI actions ── */}
+        {/* ── Emails with threaded view ── */}
         <TabsContent value="emails">
-          <ScrollArea className="h-56">
-            {emailsLoading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>
-            ) : emails.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Mail className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
-                <p className="text-xs text-muted-foreground">No emails yet</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5 mt-2">
-                {emails.map((email) => (
-                  <div key={email.id} className="p-2.5 rounded-lg space-y-1.5 border border-border/20 bg-secondary/30 group">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {email.status === 'sent' ? <CheckCircle className="w-3 h-3 text-[hsl(var(--accent-success))]" /> :
-                         email.status === 'failed' ? <AlertCircle className="w-3 h-3 text-destructive" /> :
-                         <Clock className="w-3 h-3 text-muted-foreground" />}
-                        <span className="text-[11px] font-medium text-foreground truncate">{email.subject}</span>
+          {selectedEmailThread ? (
+            <div className="space-y-2">
+              <button
+                onClick={() => setSelectedEmailThread(null)}
+                className="text-[11px] text-primary hover:underline flex items-center gap-1"
+              >
+                ← Back to emails
+              </button>
+              <ScrollArea className="h-52">
+                <div className="space-y-2">
+                  {selectedEmailThreadEmails.map((email) => (
+                    <div
+                      key={email.id}
+                      className={cn(
+                        'p-2.5 rounded-lg space-y-1.5 border',
+                        isInbound(email)
+                          ? 'border-primary/30 bg-primary/5'
+                          : 'border-border/20 bg-secondary/30'
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {isInbound(email) ? (
+                            <ArrowDownLeft className="w-3 h-3 text-primary shrink-0" />
+                          ) : (
+                            <ArrowUpRight className="w-3 h-3 text-[hsl(var(--accent-success))] shrink-0" />
+                          )}
+                          <span className="text-[10px] font-medium text-foreground truncate">
+                            {isInbound(email) ? email.from_address : `To: ${email.to_addresses?.join(', ')}`}
+                          </span>
+                          {email.status === 'sent' && <CheckCircle className="w-2.5 h-2.5 text-[hsl(var(--accent-success))] shrink-0" />}
+                          {email.status === 'failed' && <AlertCircle className="w-2.5 h-2.5 text-destructive shrink-0" />}
+                        </div>
+                        <span className="text-[9px] text-muted-foreground font-mono shrink-0">
+                          {format(new Date(email.created_at), 'MMM d, h:mm a')}
+                        </span>
                       </div>
-                      <span className="text-[9px] text-muted-foreground font-mono shrink-0">
-                        {format(new Date(email.created_at), 'MMM d')}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {email.from_address} → {email.to_addresses?.join(', ')}
-                    </p>
-                    {email.body_text && (
-                      <p className="text-[10px] text-muted-foreground/70 line-clamp-2">{email.body_text}</p>
-                    )}
-
-                    {/* Action row */}
-                    <div className="flex items-center gap-1 pt-0.5">
-                      {email.status === 'draft' && (
+                      <p className="text-[10px] text-muted-foreground font-medium">{email.subject}</p>
+                      {email.body_text && (
+                        <p className="text-[10px] text-foreground/80 whitespace-pre-wrap leading-relaxed bg-background/50 rounded p-2 border border-border/10">
+                          {email.body_text}
+                        </p>
+                      )}
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 pt-0.5">
+                        {email.status === 'draft' && (
+                          <Button
+                            size="sm" variant="ghost"
+                            className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
+                            disabled={emailSending}
+                            onClick={async () => {
+                              if (isResendTestRecipientMismatch(email.from_address, email.to_addresses || [])) {
+                                toast.error(resendTestModeMessage);
+                                return;
+                              }
+                              try { await sendEmail(email.id); toast.success('Email sent!'); }
+                              catch (err: any) { toast.error(err.message || 'Failed to send'); }
+                            }}
+                          >
+                            <Send className="w-2.5 h-2.5 mr-0.5" /> Send
+                          </Button>
+                        )}
                         <Button
                           size="sm" variant="ghost"
-                          className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
-                          disabled={emailSending}
-                          onClick={async () => {
-                            if (isResendTestRecipientMismatch(email.from_address, email.to_addresses || [])) {
-                              toast.error(resendTestModeMessage);
-                              return;
-                            }
-                            try { await sendEmail(email.id); toast.success('Email sent!'); }
-                            catch (err: any) { toast.error(err.message || 'Failed to send'); }
-                          }}
+                          className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-primary"
+                          disabled={isDrafting}
+                          onClick={() => handleAIReply(email.id)}
                         >
-                          <Send className="w-2.5 h-2.5 mr-0.5" /> Send
+                          {isDrafting ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> : <Reply className="w-2.5 h-2.5 mr-0.5" />}
+                          AI Reply
                         </Button>
-                      )}
-                      <Button
-                        size="sm" variant="ghost"
-                        className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-primary"
-                        disabled={isDrafting}
-                        onClick={() => handleAIReply(email.id)}
-                      >
-                        {isDrafting ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> : <Reply className="w-2.5 h-2.5 mr-0.5" />}
-                        AI Reply
-                      </Button>
-                      <Button
-                        size="sm" variant="ghost"
-                        className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-primary"
-                        disabled={isSummarizing}
-                        onClick={() => handleSummarize(email.id)}
-                      >
-                        {isSummarizing && selectedEmailId === email.id
-                          ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" />
-                          : <FileText className="w-2.5 h-2.5 mr-0.5" />}
-                        Summarize
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          ) : (
+            <ScrollArea className="h-56">
+              {emailsLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>
+              ) : emailThreads.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Mail className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
+                  <p className="text-xs text-muted-foreground">No emails yet</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5 mt-2">
+                  {emailThreads.map((thread) => (
+                    <button
+                      key={thread.id}
+                      onClick={() => setSelectedEmailThread(thread.id)}
+                      className={cn(
+                        'w-full text-left p-2.5 rounded-lg space-y-1 border transition-all hover:bg-secondary/80',
+                        thread.hasInbound
+                          ? 'border-primary/30 bg-primary/5'
+                          : 'border-border/20 bg-secondary/30'
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {thread.latest.status === 'sent' ? <CheckCircle className="w-3 h-3 text-[hsl(var(--accent-success))]" /> :
+                           thread.latest.status === 'failed' ? <AlertCircle className="w-3 h-3 text-destructive" /> :
+                           <Clock className="w-3 h-3 text-muted-foreground" />}
+                          <span className="text-[11px] font-medium text-foreground truncate">{thread.latest.subject}</span>
+                          {thread.replyCount > 0 && (
+                            <span className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                              <MessageCircle className="w-2.5 h-2.5" />
+                              {thread.replyCount}
+                            </span>
+                          )}
+                          {thread.hasInbound && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary shrink-0">
+                              Reply received
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] text-muted-foreground font-mono shrink-0">
+                          {format(new Date(thread.latest.created_at), 'MMM d')}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {thread.emails[0].from_address} → {thread.emails[0].to_addresses?.join(', ')}
+                      </p>
+                      {thread.latest.body_text && (
+                        <p className="text-[10px] text-muted-foreground/70 line-clamp-1">{thread.latest.body_text}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          )}
         </TabsContent>
 
         {/* ── Calls ── */}
