@@ -7,7 +7,7 @@ interface MainCommandCenterProps {
 
 export function MainCommandCenter({ children, className }: MainCommandCenterProps) {
   return (
-    <main className={cn('flex flex-col min-w-0 w-full overflow-hidden md:max-w-[clamp(360px,50%,680px)] md:justify-self-start', className)}>
+    <main className={cn('flex flex-col min-w-0 w-full overflow-hidden', className)}>
       {children}
     </main>
   );

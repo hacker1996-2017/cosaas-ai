@@ -19,22 +19,22 @@ import { RightPanel } from './layout/RightPanel';
 export function ExecutiveDashboard() {
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      {/* Top Header */}
       <DashboardHeader />
 
-      {/* Main Content - desktop 3-column grid to prevent overflow */}
-      <div className="flex md:grid md:grid-cols-[clamp(180px,15vw,240px)_1fr_clamp(280px,35vw,500px)] lg:grid-cols-[clamp(200px,16vw,260px)_1fr_clamp(320px,38vw,560px)] flex-1 overflow-hidden min-w-0 w-full max-w-[100vw]">
-        {/* Left Sidebar - AI Agents */}
+      {/* 3-column grid: left agents | center command | right tabbed panels */}
+      <div className="flex md:grid md:grid-cols-[220px_1fr_minmax(320px,420px)] flex-1 overflow-hidden min-w-0 w-full">
         <LeftSidebar>
           <AgentsSidebar />
         </LeftSidebar>
 
-        {/* Center - Command Center */}
         <MainCommandCenter>
           <CommandCenter className="flex-1 panel m-2" />
         </MainCommandCenter>
 
-        {/* Right Sidebar - Business Panels */}
+        {/* Right panel children are indexed by position — order matters for tab mapping:
+            0: KillSwitch, 1: Industry, 2: ActionPipeline, 3: DecisionCenter,
+            4: AuditLog, 5: EventTimeline, 6: Communications, 7: CRM,
+            8: Documents, 9: Workflows, 10: Integrations */}
         <RightPanel>
           <KillSwitchControl />
           <IndustryPanel />
