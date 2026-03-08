@@ -133,27 +133,121 @@
        status: 'available' as const
      }))
  
-     const { error: agentsError } = await adminClient
-       .from('agents')
-       .insert(agentInserts)
- 
-     if (agentsError) {
-       console.error('Failed to create agents:', agentsError)
-     }
- 
-     return new Response(
-       JSON.stringify({ organization: org, success: true }),
-       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-     )
- 
-   } catch (error) {
-     console.error('Error:', error)
-     return new Response(
-       JSON.stringify({ error: 'Internal server error' }),
-       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-     )
-   }
- })
+      const { error: agentsError } = await adminClient
+        .from('agents')
+        .insert(agentInserts)
+
+      if (agentsError) {
+        console.error('Failed to create agents:', agentsError)
+      }
+
+      // 5. Seed default policy rules for AI governance
+      const policyRules = getDefaultPolicyRules(org.id)
+      const { error: policyError } = await adminClient
+        .from('policy_rules')
+        .insert(policyRules)
+
+      if (policyError) {
+        console.error('Failed to create policy rules:', policyError)
+      }
+
+      // 6. Create welcome workflow
+      const { data: workflow, error: workflowError } = await adminClient
+        .from('workflows')
+        .insert({
+          organization_id: org.id,
+          name: 'New Client Onboarding',
+          description: 'AI-guided workflow to onboard new clients with welcome email and follow-up tasks',
+          trigger_type: 'manual',
+          is_active: true,
+          is_template: true,
+          created_by: user.id,
+        })
+        .select()
+        .single()
+
+      if (workflowError) {
+        console.error('Failed to create workflow:', workflowError)
+      } else if (workflow) {
+        // Add workflow steps
+        const steps = [
+          { workflow_id: workflow.id, step_number: 1, name: 'Send Welcome Email', action_type: 'send_email', description: 'Send personalized welcome email to new client' },
+          { workflow_id: workflow.id, step_number: 2, name: 'Create Follow-up Task', action_type: 'create_task', description: 'Schedule a 7-day follow-up call' },
+          { workflow_id: workflow.id, step_number: 3, name: 'Update CRM', action_type: 'update_client', description: 'Mark client as onboarded in CRM' },
+        ]
+        await adminClient.from('workflow_steps').insert(steps)
+      }
+
+      // 7. Seed default integrations (Lovable AI Gateway is always available)
+      const defaultIntegrations = [
+        { organization_id: org.id, service_name: 'Lovable AI Gateway', service_type: 'ai', status: 'active', is_active: true, config: { models: ['gemini-2.5-flash', 'gpt-5-mini'] } },
+        { organization_id: org.id, service_name: 'Internal Storage', service_type: 'storage', status: 'active', is_active: true, config: { bucket: 'documents' } },
+      ]
+      await adminClient.from('integrations').insert(defaultIntegrations)
+
+      return new Response(
+        JSON.stringify({ organization: org, success: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+
+    } catch (error) {
+      console.error('Error:', error)
+      return new Response(
+        JSON.stringify({ error: 'Internal server error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  })
+
+  // Default policy rules for AI governance
+  function getDefaultPolicyRules(orgId: string) {
+    return [
+      {
+        organization_id: orgId,
+        name: 'High-Value Transactions',
+        description: 'Require CEO approval for actions involving amounts over $10,000',
+        category: 'financial',
+        condition: { amount_threshold: 10000 },
+        action: 'require_approval',
+        risk_level: 'high',
+        priority: 100,
+        is_active: true,
+      },
+      {
+        organization_id: orgId,
+        name: 'External Communications',
+        description: 'Draft mode for external emails to new contacts',
+        category: 'communication',
+        condition: { contact_type: 'new' },
+        action: 'draft_first',
+        risk_level: 'medium',
+        priority: 80,
+        is_active: true,
+      },
+      {
+        organization_id: orgId,
+        name: 'Low-Risk Auto-Execute',
+        description: 'Auto-execute routine internal tasks below $500',
+        category: 'system',
+        condition: { risk_level: 'low', internal_only: true, amount_max: 500 },
+        action: 'auto_execute',
+        risk_level: 'low',
+        priority: 10,
+        is_active: true,
+      },
+      {
+        organization_id: orgId,
+        name: 'Client Data Changes',
+        description: 'Require approval for client data modifications',
+        category: 'client_management',
+        condition: { action_type: 'update_client' },
+        action: 'require_approval',
+        risk_level: 'medium',
+        priority: 50,
+        is_active: true,
+      },
+    ]
+  }
  
  // Industry-specific agent configurations
  function getAgentsForIndustryMarket(industry: string, market: string) {
