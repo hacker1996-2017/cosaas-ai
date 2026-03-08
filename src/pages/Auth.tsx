@@ -78,8 +78,8 @@ export default function Auth() {
         toast.error(error.message);
       }
     } else {
-      toast.success('Welcome back, CEO!');
-      navigate('/', { replace: true });
+      toast.success('Welcome back!');
+      navigate(redirectTo, { replace: true });
     }
   };
 
