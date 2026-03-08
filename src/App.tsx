@@ -11,6 +11,7 @@ import OrganizationSetup from "./pages/OrganizationSetup";
 import ClientChat from "./pages/ClientChat";
 import AcceptInvite from "./pages/AcceptInvite";
 import Settings from "./pages/Settings";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,8 @@ const App = () => (
             <Route path="/chat/:orgId" element={<ClientChat />} />
             {/* Invite acceptance route */}
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            {/* Password reset route */}
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
