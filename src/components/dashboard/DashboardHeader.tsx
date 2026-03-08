@@ -155,6 +155,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
           </DropdownMenu>
         </div>
       </div>
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </header>
   );
 }
