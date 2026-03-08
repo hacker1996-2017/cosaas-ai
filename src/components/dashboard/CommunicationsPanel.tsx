@@ -484,8 +484,12 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
                           className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
                           disabled={emailSending}
                           onClick={async () => {
+                            if (isResendTestRecipientMismatch(email.from_address, email.to_addresses || [])) {
+                              toast.error(resendTestModeMessage);
+                              return;
+                            }
                             try { await sendEmail(email.id); toast.success('Email sent!'); }
-                            catch { toast.error('Failed to send'); }
+                            catch (err: any) { toast.error(err.message || 'Failed to send'); }
                           }}
                         >
                           <Send className="w-2.5 h-2.5 mr-0.5" /> Send
