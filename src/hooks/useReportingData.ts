@@ -175,7 +175,7 @@ export function useReportingData() {
     const executedActions = actions?.filter(a => a.status === 'completed').length || 0;
 
     const totalEmails = emails?.length || 0;
-    const sentEmails = emails?.filter(e => e.status === 'sent' || e.status === 'delivered').length || 0;
+    const sentEmails = emails?.filter(e => e.status === 'sent' as any).length || 0;
 
     return {
       totalMRR, totalClients, activeClients, churnRisk, avgHealthScore,
