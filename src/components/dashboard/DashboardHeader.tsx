@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings, Search, User, Building2, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
