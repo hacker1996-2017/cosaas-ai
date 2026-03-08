@@ -12,7 +12,6 @@ import { ActionPipelinePanel } from './ActionPipelinePanel';
 import { AuditLogPanel } from './AuditLogPanel';
 import { KillSwitchControl } from './KillSwitchControl';
 import { CommunicationsPanel } from './CommunicationsPanel';
-import { DevOpsPanel } from './DevOpsPanel';
 import { LeftSidebar } from './layout/LeftSidebar';
 import { MainCommandCenter } from './layout/MainCommandCenter';
 import { RightPanel } from './layout/RightPanel';
