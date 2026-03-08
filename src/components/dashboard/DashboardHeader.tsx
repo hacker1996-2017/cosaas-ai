@@ -97,12 +97,11 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
 
         {/* Center: Search */}
         <div className="flex-1 max-w-md mx-6 hidden md:block">
-          <div className="relative">
+          <div className="relative cursor-pointer" onClick={() => setCommandPaletteOpen(true)}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search commands, clients, decisions..."
-              className="pl-9 h-9 bg-secondary/50 border-border/30 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/30 focus-visible:border-primary/40"
-            />
+            <div className="pl-9 h-9 bg-secondary/50 border border-border/30 rounded-md text-sm text-muted-foreground/60 flex items-center hover:border-primary/40 transition-colors">
+              Search commands, clients, decisions...
+            </div>
             <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 items-center gap-0.5 rounded border border-border/50 bg-background/50 px-1.5 font-mono text-[10px] text-muted-foreground">
               ⌘K
             </kbd>
