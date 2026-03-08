@@ -280,7 +280,27 @@ Deno.serve(async (req) => {
         confidence_score: parsedIntent.clarificationNeeded ? 0.6 : 0.85,
       })
 
-    // 10. Reset agent status if auto-approved (no pending decision)
+    // 10. AUTO-DISPATCH: If approved with no pending decision, execute immediately
+    let dispatchResult = null
+    if (!decision && finalStatus === 'approved') {
+      console.log(`Auto-dispatching approved action: ${pipelineAction.id}`)
+      try {
+        const dispatchResponse = await fetch(`${supabaseUrl}/functions/v1/dispatch-action`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ actionId: pipelineAction.id }),
+        })
+        dispatchResult = await dispatchResponse.json()
+        console.log(`Auto-dispatch result:`, JSON.stringify(dispatchResult))
+      } catch (dispatchError) {
+        console.error('Auto-dispatch failed:', dispatchError)
+      }
+    }
+
+    // Reset agent status if done (auto-dispatched or no decision)
     if (assignedAgent && !decision) {
       await adminClient
         .from('agents')
@@ -295,7 +315,9 @@ Deno.serve(async (req) => {
         assignedAgent: assignedAgent ? { id: assignedAgent.id, name: assignedAgent.name } : null,
         decision: decision ? { id: decision.id, title: decision.title } : null,
         pipelineAction: { id: pipelineAction.id, status: finalStatus },
-        status: decision ? 'pending_decision' : finalStatus === 'approved' ? 'approved' : 'routed',
+        dispatched: !!dispatchResult,
+        executionResult: dispatchResult || null,
+        status: decision ? 'pending_decision' : dispatchResult?.success ? 'executed' : finalStatus === 'approved' ? 'approved' : 'routed',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
