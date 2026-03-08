@@ -42,7 +42,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const [aiContext, setAiContext] = useState('');
 
   const [newEmail, setNewEmail] = useState({
-    to: '', subject: '', body: '', from: 'ceo@company.com',
+    to: '', subject: '', body: '', from: 'onboarding@resend.dev',
   });
   const [newCall, setNewCall] = useState({
     callee_number: '', summary: '',
