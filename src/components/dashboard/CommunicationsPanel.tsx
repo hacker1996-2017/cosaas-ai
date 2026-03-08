@@ -50,6 +50,16 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
     callee_number: '', summary: '',
   });
 
+  const resendTestModeMessage = user?.email
+    ? `Resend test mode only sends to ${user.email}. Verify a domain to email others.`
+    : 'Resend test mode only sends to your account email. Verify a domain to email others.';
+
+  const isResendTestRecipientMismatch = (fromAddress: string, recipients: string[]) => {
+    if (fromAddress.trim().toLowerCase() !== 'onboarding@resend.dev' || !user?.email) return false;
+    const accountEmail = user.email.trim().toLowerCase();
+    return recipients.some((recipient) => recipient.trim().toLowerCase() !== accountEmail);
+  };
+
   const handleAIDraft = async () => {
     if (!newEmail.to || !newEmail.subject) {
       toast.error('Enter recipient and subject first');
