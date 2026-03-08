@@ -125,7 +125,7 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
         toast.success('Email sent!');
       }
       setIsEmailDialogOpen(false);
-      setNewEmail({ to: '', subject: '', body: '', from: 'ceo@company.com' });
+      setNewEmail({ to: '', subject: '', body: '', from: 'onboarding@resend.dev' });
       setAiContext('');
     } catch { toast.error('Failed to send email'); }
   };
