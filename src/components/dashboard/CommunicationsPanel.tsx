@@ -38,13 +38,14 @@ export function CommunicationsPanel({ className }: CommunicationsPanelProps) {
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const [selectedEmailThread, setSelectedEmailThread] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [emailSummary, setEmailSummary] = useState<string | null>(null);
   const [aiContext, setAiContext] = useState('');
 
   const [newEmail, setNewEmail] = useState({
-    to: '', subject: '', body: '', from: 'onboarding@resend.dev',
+    to: '', subject: '', body: '', from: 'onboarding@resend.dev', thread_id: '',
   });
   const [newCall, setNewCall] = useState({
     callee_number: '', summary: '',
