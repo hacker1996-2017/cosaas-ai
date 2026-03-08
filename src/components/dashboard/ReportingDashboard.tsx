@@ -107,7 +107,69 @@ export function ReportingDashboard() {
   const {
     metrics, clientSegments, agentPerformance, pipelineMetrics,
     riskDistribution, revenueTrend, commandVelocity, decisionAnalytics, isLoading,
+    rawClients, rawPolicies, rawPremiums, rawCommissions,
   } = useReportingData();
+  const [isScoringHealth, setIsScoringHealth] = useState(false);
+
+  const handleExportCSV = () => {
+    if (!rawClients?.length) { toast.error('No data to export'); return; }
+    exportToCSV(
+      rawClients.map(c => ({
+        Name: c.name, Company: c.company || '', Email: c.email || '',
+        Status: c.status || '', Type: c.client_type || '', MRR: c.mrr || 0,
+        'Health Score': c.health_score || 0, 'Churn Risk': c.risk_of_churn || '',
+        Industry: c.industry || '', 'Last Contact': c.last_contact_at || '',
+      })),
+      `clients-report-${new Date().toISOString().slice(0, 10)}`
+    );
+    toast.success('CSV exported');
+  };
+
+  const handleExportPDF = () => {
+    const sections = [
+      {
+        heading: 'KPI Summary',
+        headers: ['Metric', 'Value'],
+        rows: [
+          ['Total MRR', `R${fmt(metrics.totalMRR)}`],
+          ['Active Clients', `${metrics.activeClients} / ${metrics.totalClients}`],
+          ['Avg Health Score', `${metrics.avgHealthScore}%`],
+          ['Churn Risk (High+)', String(metrics.churnRisk)],
+          ['Premium Collection', `${metrics.premiumCollectionRate}%`],
+          ['Commission Recovery', `${metrics.commissionRate}%`],
+          ['Command Success Rate', `${metrics.commandSuccessRate}%`],
+          ['Active Policies', `${metrics.activePolicies} / ${metrics.totalPolicies}`],
+        ],
+      },
+      ...(rawClients?.length ? [{
+        heading: 'Client Portfolio',
+        headers: ['Name', 'Company', 'Status', 'MRR', 'Health', 'Risk'],
+        rows: rawClients.map(c => [
+          c.name, c.company || '—', c.status || '—',
+          `R${fmt(Number(c.mrr) || 0)}`, `${c.health_score || 0}%`, c.risk_of_churn || 'low',
+        ]),
+      }] : []),
+    ];
+    exportToPDF('Executive Intelligence Report', sections);
+    toast.success('PDF report opened for printing');
+  };
+
+  const handleRunHealthScoring = async () => {
+    setIsScoringHealth(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-health-score', {
+        body: {},
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const count = data?.results?.length || 0;
+      toast.success(`Health scores updated for ${count} client${count !== 1 ? 's' : ''}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Health scoring failed');
+    } finally {
+      setIsScoringHealth(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -121,10 +183,22 @@ export function ReportingDashboard() {
     <ScrollArea className="h-full">
       <div className="p-3 space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <BarChart3 className="w-4 h-4 text-primary" />
           <h2 className="text-sm font-bold text-foreground tracking-tight">Executive Intelligence</h2>
-          <Badge variant="outline" className="ml-auto text-[9px] border-primary/30 text-primary">LIVE</Badge>
+          <div className="ml-auto flex items-center gap-1">
+            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1 border-border/40" onClick={handleRunHealthScoring} disabled={isScoringHealth}>
+              {isScoringHealth ? <Loader2 className="w-3 h-3 animate-spin" /> : <HeartPulse className="w-3 h-3" />}
+              Score
+            </Button>
+            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1 border-border/40" onClick={handleExportCSV}>
+              <FileSpreadsheet className="w-3 h-3" /> CSV
+            </Button>
+            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1 border-border/40" onClick={handleExportPDF}>
+              <Printer className="w-3 h-3" /> PDF
+            </Button>
+            <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">LIVE</Badge>
+          </div>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
