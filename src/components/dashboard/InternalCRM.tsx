@@ -129,7 +129,10 @@ export function InternalCRM({ className }: InternalCRMProps) {
   return (
     <div className={cn('panel', className)}>
       <div className="panel-header flex items-center justify-between">
-        <span>Internal CRM</span>
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-3.5 h-3.5 text-primary" />
+          <span>Internal CRM</span>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" variant="outline" className="h-7 text-xs">
