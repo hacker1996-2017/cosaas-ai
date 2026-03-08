@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { NotificationCenter } from './NotificationCenter';
 import { CommandPalette } from './CommandPalette';
+import { QuotaStatusBar } from './QuotaStatusBar';
+import { OrgSwitcher } from './OrgSwitcher';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
@@ -83,8 +85,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               {organization ? (
                 <>
-                  <Building2 className="w-3 h-3" />
-                  <span className="truncate max-w-32">{organization.name}</span>
+                  <OrgSwitcher />
                   <span className="text-border">·</span>
                   <span className="text-exec-gold font-medium">{organization.industry || 'General'}</span>
                 </>
@@ -110,6 +111,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5">
+          <QuotaStatusBar className="hidden lg:flex" />
           <NotificationCenter />
 
           <div className="w-px h-6 bg-border/40 mx-1" />
