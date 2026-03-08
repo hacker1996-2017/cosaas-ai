@@ -1968,6 +1968,195 @@ export type Database = {
           },
         ]
       }
+      schedule_executions: {
+        Row: {
+          action_pipeline_id: string | null
+          agent_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          input_data: Json | null
+          organization_id: string
+          output_data: Json | null
+          scheduled_task_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          action_pipeline_id?: string | null
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          organization_id: string
+          output_data?: Json | null
+          scheduled_task_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          action_pipeline_id?: string | null
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          organization_id?: string
+          output_data?: Json | null
+          scheduled_task_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_executions_action_pipeline_id_fkey"
+            columns: ["action_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "action_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_executions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_executions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_executions_scheduled_task_id_fkey"
+            columns: ["scheduled_task_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_tasks: {
+        Row: {
+          agent_id: string | null
+          command_id: string | null
+          created_at: string
+          created_by: string
+          cron_expression: string | null
+          description: string | null
+          execution_count: number
+          expires_at: string | null
+          frequency: Database["public"]["Enums"]["schedule_frequency"]
+          id: string
+          last_error: string | null
+          last_execution_result: Json | null
+          last_run_at: string | null
+          max_retries: number
+          metadata: Json | null
+          name: string
+          next_run_at: string | null
+          organization_id: string
+          priority: number
+          retry_count: number
+          scheduled_at: string
+          status: Database["public"]["Enums"]["scheduled_task_status"]
+          tags: string[] | null
+          task_config: Json
+          task_type: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          command_id?: string | null
+          created_at?: string
+          created_by: string
+          cron_expression?: string | null
+          description?: string | null
+          execution_count?: number
+          expires_at?: string | null
+          frequency?: Database["public"]["Enums"]["schedule_frequency"]
+          id?: string
+          last_error?: string | null
+          last_execution_result?: Json | null
+          last_run_at?: string | null
+          max_retries?: number
+          metadata?: Json | null
+          name: string
+          next_run_at?: string | null
+          organization_id: string
+          priority?: number
+          retry_count?: number
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["scheduled_task_status"]
+          tags?: string[] | null
+          task_config?: Json
+          task_type?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          command_id?: string | null
+          created_at?: string
+          created_by?: string
+          cron_expression?: string | null
+          description?: string | null
+          execution_count?: number
+          expires_at?: string | null
+          frequency?: Database["public"]["Enums"]["schedule_frequency"]
+          id?: string
+          last_error?: string | null
+          last_execution_result?: Json | null
+          last_run_at?: string | null
+          max_retries?: number
+          metadata?: Json | null
+          name?: string
+          next_run_at?: string | null
+          organization_id?: string
+          priority?: number
+          retry_count?: number
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["scheduled_task_status"]
+          tags?: string[] | null
+          task_config?: Json
+          task_type?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_tasks_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "commands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timeline_events: {
         Row: {
           agent_id: string | null
@@ -2351,6 +2540,19 @@ export type Database = {
         | "resolved"
         | "escalated"
       risk_level: "low" | "medium" | "high" | "critical"
+      schedule_frequency:
+        | "once"
+        | "hourly"
+        | "daily"
+        | "weekly"
+        | "monthly"
+        | "cron"
+      scheduled_task_status:
+        | "active"
+        | "paused"
+        | "completed"
+        | "failed"
+        | "expired"
       workflow_step_status:
         | "not_started"
         | "in_progress"
@@ -2589,6 +2791,21 @@ export const Constants = {
         "escalated",
       ],
       risk_level: ["low", "medium", "high", "critical"],
+      schedule_frequency: [
+        "once",
+        "hourly",
+        "daily",
+        "weekly",
+        "monthly",
+        "cron",
+      ],
+      scheduled_task_status: [
+        "active",
+        "paused",
+        "completed",
+        "failed",
+        "expired",
+      ],
       workflow_step_status: [
         "not_started",
         "in_progress",
