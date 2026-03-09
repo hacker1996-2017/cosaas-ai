@@ -135,8 +135,21 @@ export function DocumentsPanel({ className }: DocumentsPanelProps) {
     setSelectedDocument(doc);
     setIsLoadingView(true);
     setViewDialogOpen(true);
+    setTextContent(null);
     const url = await getViewUrl(doc.storage_path);
     setViewUrl(url);
+
+    // For text files, fetch content for inline rendering
+    if (doc.file_type === 'txt' && url) {
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        setTextContent(text);
+      } catch (e) {
+        console.error('Failed to fetch text content:', e);
+      }
+    }
+
     setIsLoadingView(false);
   }, [getViewUrl]);
 
