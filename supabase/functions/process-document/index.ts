@@ -121,7 +121,7 @@ serve(async (req) => {
       if (downloadError) {
         console.error("Error downloading file:", downloadError);
       } else if (fileData) {
-        if (fileType === "txt") {
+        if (safeFileType === "txt") {
           fileContent = await fileData.text();
           canExtractText = true;
         } else {
