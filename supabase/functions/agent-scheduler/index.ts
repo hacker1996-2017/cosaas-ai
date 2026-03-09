@@ -266,7 +266,8 @@ async function executeCommandTask(supabase: ReturnType<typeof createClient>, tas
   const config = task.task_config as { command_text?: string };
   if (!config.command_text) throw new Error('No command_text in task config');
 
-  const { data, error } = await supabase
+  // Insert command
+  const { data: command, error } = await supabase
     .from('commands')
     .insert({
       organization_id: task.organization_id,
@@ -280,32 +281,92 @@ async function executeCommandTask(supabase: ReturnType<typeof createClient>, tas
 
   if (error) throw error;
 
-  // Trigger process-command to actually execute the command through the AI pipeline
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  try {
-    const processResponse = await fetch(`${supabaseUrl}/functions/v1/process-command`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-      },
-      body: JSON.stringify({ commandId: data.id }),
-    });
+  // Use AI to parse intent directly (same logic as process-command but inline for scheduler)
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (lovableApiKey) {
+    try {
+      // Fetch org context
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('name, industry, market, autonomy_level')
+        .eq('id', task.organization_id)
+        .single();
 
-    if (processResponse.ok) {
-      const processResult = await processResponse.json();
-      return { command_id: data.id, command_text: config.command_text, processed: true, result: processResult };
-    } else {
-      const errText = await processResponse.text();
-      console.error(`process-command failed for scheduled command ${data.id}:`, errText);
-      return { command_id: data.id, command_text: config.command_text, processed: false, error: errText };
+      const { data: agents } = await supabase
+        .from('agents')
+        .select('id, name, role, emoji, status')
+        .eq('organization_id', task.organization_id);
+
+      // AI parse
+      const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: `Parse this scheduled command for ${org?.name || 'the company'}. Output JSON: {"primaryIntent":"...","category":"client_management|communication|analysis|scheduling|workflow|reporting|other","estimatedComplexity":"low|medium|high","requiresDecision":false}` },
+            { role: 'user', content: config.command_text },
+          ],
+          temperature: 0.2,
+          max_tokens: 500,
+        }),
+      });
+
+      let parsedIntent = { primaryIntent: config.command_text, category: 'other', estimatedComplexity: 'low', requiresDecision: false };
+      if (aiResp.ok) {
+        const aiData = await aiResp.json();
+        const content = aiData.choices?.[0]?.message?.content || '';
+        try {
+          const match = content.match(/\{[\s\S]*\}/);
+          if (match) parsedIntent = { ...parsedIntent, ...JSON.parse(match[0]) };
+        } catch { /* use defaults */ }
+      }
+
+      // Update command with parsed intent
+      await supabase
+        .from('commands')
+        .update({ status: 'in_progress', started_at: new Date().toISOString(), parsed_intent: parsedIntent })
+        .eq('id', command.id);
+
+      // Assign best agent
+      const bestAgent = (agents || []).find(a => a.status !== 'error') || null;
+
+      // Create action pipeline entry
+      const { data: pipelineAction } = await supabase
+        .from('action_pipeline')
+        .insert({
+          organization_id: task.organization_id,
+          command_id: command.id,
+          agent_id: bestAgent?.id || null,
+          created_by: task.created_by,
+          category: 'system',
+          action_type: parsedIntent.category || 'other',
+          action_description: parsedIntent.primaryIntent || config.command_text,
+          action_params: { original_command: config.command_text, scheduled: true, task_id: task.id },
+          risk_level: 'low',
+          status: parsedIntent.requiresDecision ? 'pending_approval' : 'approved',
+          requires_approval: parsedIntent.requiresDecision,
+          idempotency_key: `sched-${task.id}-${Date.now()}`,
+        })
+        .select()
+        .single();
+
+      // Complete command
+      await supabase
+        .from('commands')
+        .update({ status: 'completed', completed_at: new Date().toISOString(), result: { action_pipeline_id: pipelineAction?.id, scheduled: true } })
+        .eq('id', command.id);
+
+      return { command_id: command.id, action_pipeline_id: pipelineAction?.id, processed: true };
+    } catch (err) {
+      console.error(`Scheduled command AI processing error:`, err);
     }
-  } catch (err) {
-    console.error(`process-command call error for ${data.id}:`, err);
-    return { command_id: data.id, command_text: config.command_text, processed: false, error: (err as Error).message };
   }
+
+  return { command_id: command.id, command_text: config.command_text, processed: false };
 }
 
 async function executeActionPipelineTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
