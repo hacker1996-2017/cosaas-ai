@@ -113,10 +113,10 @@ serve(async (req) => {
     let fileContent = "";
     let canExtractText = false;
 
-    if (["txt", "pdf", "docx"].includes(fileType)) {
+    if (["txt", "pdf", "docx"].includes(safeFileType)) {
       const { data: fileData, error: downloadError } = await supabase.storage
         .from("documents")
-        .download(storagePath);
+        .download(safeStoragePath);
 
       if (downloadError) {
         console.error("Error downloading file:", downloadError);
