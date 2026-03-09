@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.google-calendar]
 verify_jwt = false
+
+[functions.hubspot]
+verify_jwt = false
