@@ -787,6 +787,52 @@ Deno.serve(async (req) => {
         color: result.success ? 'green' : 'red',
       })
 
+    // ── Step 9: Agent Intelligence — Memory, Evidence, Follow-ups, Delegation ──
+    if (action.agent_id) {
+      try {
+        const intelligenceResponse = await fetch(`${supabaseUrl}/functions/v1/agent-intelligence`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'post_execution',
+            organizationId: action.organization_id,
+            agentId: action.agent_id,
+            actionPipelineId: actionId,
+            actionType: action.action_type,
+            actionCategory: action.category,
+            outcome: result.success ? 'success' : 'failure',
+            evidence: result.evidence,
+            reasoningChain: [
+              { step: 'dispatch', timestamp: dispatchTime },
+              { step: 'execute', category: action.category, duration_ms: executionDuration },
+              { step: result.success ? 'success' : 'failure', details: result.error || 'completed' },
+            ],
+            contextSnapshot: {
+              command_id: action.command_id,
+              risk_level: action.risk_level,
+              retry_count: action.retry_count,
+              action_params_keys: Object.keys(action.action_params || {}),
+            },
+            durationMs: executionDuration,
+            errorDetails: result.error || undefined,
+            actionDescription: action.action_description,
+          }),
+        })
+
+        if (intelligenceResponse.ok) {
+          const intelResult = await intelligenceResponse.json()
+          console.log(`Intelligence recorded: memory=${intelResult.memory}, evidence=${intelResult.evidence}, follow-ups=${intelResult.followUps}, delegations=${intelResult.delegations}`)
+        } else {
+          console.error('Intelligence recording failed:', await intelligenceResponse.text())
+        }
+      } catch (intelError) {
+        console.error('Intelligence integration error:', intelError)
+        // Non-blocking: intelligence failure should not break execution
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: result.success,
