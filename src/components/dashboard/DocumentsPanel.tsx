@@ -878,3 +878,88 @@ function DocumentItem({
     </div>
   );
 }
+
+// Full-screen document preview content component
+interface DocumentPreviewContentProps {
+  url: string;
+  fileType: string;
+  fileName: string;
+  textContent: string | null;
+  onDownload: () => void;
+}
+
+function DocumentPreviewContent({ url, fileType, fileName, textContent, onDownload }: DocumentPreviewContentProps) {
+  const isImage = fileType === 'image';
+  const isPDF = fileType === 'pdf';
+  const isText = fileType === 'txt';
+  const isOfficeDoc = ['docx', 'xlsx', 'pptx'].includes(fileType);
+
+  // Images: scrollable with zoom
+  if (isImage) {
+    return (
+      <ScrollArea className="h-full w-full">
+        <div className="flex items-center justify-center min-h-full p-6">
+          <img
+            src={url}
+            alt={fileName}
+            className="max-w-full h-auto rounded-lg shadow-lg object-contain"
+            style={{ maxHeight: 'calc(95vh - 150px)' }}
+          />
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  // PDFs: native browser iframe with scroll
+  if (isPDF) {
+    return (
+      <iframe
+        src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+        className="w-full h-full border-0"
+        title={fileName}
+        style={{ minHeight: '100%' }}
+      />
+    );
+  }
+
+  // Text files: render as scrollable preformatted text
+  if (isText && textContent !== null) {
+    return (
+      <ScrollArea className="h-full w-full">
+        <div className="p-6">
+          <pre className="text-sm font-mono text-foreground whitespace-pre-wrap break-words bg-card p-4 rounded-lg border border-border/50">
+            {textContent}
+          </pre>
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  // Office docs: use Microsoft Office Online viewer
+  if (isOfficeDoc) {
+    const encodedUrl = encodeURIComponent(url);
+    const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`;
+    return (
+      <iframe
+        src={officeViewerUrl}
+        className="w-full h-full border-0"
+        title={fileName}
+        style={{ minHeight: '100%' }}
+      />
+    );
+  }
+
+  // Fallback for unsupported types
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center">
+        <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground mb-1">Preview not available for this file type</p>
+        <p className="text-xs text-muted-foreground/60 mb-4">{fileName}</p>
+        <Button variant="outline" size="sm" onClick={onDownload}>
+          <Download className="w-3.5 h-3.5 mr-1.5" /> Download to view
+        </Button>
+      </div>
+    </div>
+  );
+}
