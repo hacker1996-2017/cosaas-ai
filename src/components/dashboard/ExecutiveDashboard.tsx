@@ -133,6 +133,7 @@ export function ExecutiveDashboard() {
           <DocumentsPanel />
           <WorkflowsPanel />
           <IntegrationsPanel />
+          <GoogleCalendarPanel />
           <AgentSchedulerPanel />
           <UserManagementPanel />
           <ReportingDashboard />
