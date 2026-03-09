@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.reconcile-insurance]
 verify_jwt = false
+
+[functions.stripe-payment]
+verify_jwt = false
