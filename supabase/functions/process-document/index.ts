@@ -87,9 +87,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { documentId, fileName, fileType, storagePath, organizationId }: ProcessDocumentRequest = await req.json();
+    const body = await req.json();
+    const { documentId, fileName, fileType, storagePath, organizationId } = body as Partial<ProcessDocumentRequest>;
 
-    console.log(`Processing document: ${fileName} (${documentId})`);
+    if (!documentId || !organizationId) {
+      return new Response(
+        JSON.stringify({ error: "documentId and organizationId are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const safeFileName = fileName || "unknown";
+    const safeFileType = (fileType || "").toLowerCase();
+    const safeStoragePath = storagePath || "";
+
+    console.log(`Processing document: ${safeFileName} (${documentId})`);
 
     // Update status to processing
     await supabase
@@ -101,15 +113,15 @@ serve(async (req) => {
     let fileContent = "";
     let canExtractText = false;
 
-    if (["txt", "pdf", "docx"].includes(fileType)) {
+    if (["txt", "pdf", "docx"].includes(safeFileType)) {
       const { data: fileData, error: downloadError } = await supabase.storage
         .from("documents")
-        .download(storagePath);
+        .download(safeStoragePath);
 
       if (downloadError) {
         console.error("Error downloading file:", downloadError);
       } else if (fileData) {
-        if (fileType === "txt") {
+        if (safeFileType === "txt") {
           fileContent = await fileData.text();
           canExtractText = true;
         } else {
@@ -149,16 +161,16 @@ ACCURACY IS PARAMOUNT. If uncertain, indicate confidence level. Never fabricate 
       
       userPrompt = `Analyze this document and extract comprehensive intelligence:
 
-FILE: ${fileName}
-TYPE: ${fileType.toUpperCase()}
+FILE: ${safeFileName}
+TYPE: ${safeFileType.toUpperCase()}
 
 CONTENT:
 ${truncatedContent}`;
     } else {
       userPrompt = `Analyze this document based on available metadata and infer likely intelligence:
 
-FILE: ${fileName}
-TYPE: ${fileType.toUpperCase()}
+FILE: ${safeFileName}
+TYPE: ${safeFileType.toUpperCase()}
 
 Note: Full text extraction unavailable for this file type. Provide metadata-based analysis and indicate this limitation in your confidence assessment.`;
     }
@@ -303,9 +315,9 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
       console.error("AI API error:", aiResponse.status, errorText);
       
       // Fallback to basic analysis
-      const fallbackIntelligence = createFallbackIntelligence(fileName, fileType);
+      const fallbackIntelligence = createFallbackIntelligence(safeFileName, safeFileType);
       
-      await updateDocumentWithIntelligence(supabase, documentId, fallbackIntelligence, 0.3, organizationId, fileName);
+      await updateDocumentWithIntelligence(supabase, documentId, fallbackIntelligence, 0.3, organizationId, safeFileName);
 
       return new Response(
         JSON.stringify({ 
@@ -330,7 +342,7 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
         confidenceScore = intelligence.confidence_score || 0.85;
       } catch (parseError) {
         console.error("Failed to parse tool call arguments:", parseError);
-        intelligence = createFallbackIntelligence(fileName, fileType);
+        intelligence = createFallbackIntelligence(safeFileName, safeFileType);
         confidenceScore = 0.3;
       }
     } else {
@@ -342,21 +354,21 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
           if (jsonMatch) {
             intelligence = JSON.parse(jsonMatch[0]);
           } else {
-            intelligence = createFallbackIntelligence(fileName, fileType);
+            intelligence = createFallbackIntelligence(safeFileName, safeFileType);
             confidenceScore = 0.3;
           }
         } catch {
-          intelligence = createFallbackIntelligence(fileName, fileType);
+          intelligence = createFallbackIntelligence(safeFileName, safeFileType);
           confidenceScore = 0.3;
         }
       } else {
-        intelligence = createFallbackIntelligence(fileName, fileType);
+        intelligence = createFallbackIntelligence(safeFileName, safeFileType);
         confidenceScore = 0.3;
       }
     }
 
     // Update document with full intelligence
-    await updateDocumentWithIntelligence(supabase, documentId, intelligence, confidenceScore, organizationId, fileName);
+    await updateDocumentWithIntelligence(supabase, documentId, intelligence, confidenceScore, organizationId, safeFileName);
 
     console.log(`Document intelligence extracted: ${documentId}, confidence: ${confidenceScore}`);
 
