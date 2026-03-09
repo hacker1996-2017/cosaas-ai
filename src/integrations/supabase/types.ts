@@ -999,11 +999,17 @@ export type Database = {
           file_size: number | null
           file_type: Database["public"]["Enums"]["document_type"] | null
           id: string
+          intelligence: Json | null
+          intelligence_confidence: number | null
+          intelligence_extracted_at: string | null
+          linked_decision_id: string | null
           metadata: Json | null
           mime_type: string | null
           name: string
           organization_id: string
           processed_at: string | null
+          processing_status: string | null
+          proposed_actions_count: number | null
           storage_path: string
           summary: string | null
           tags: string[] | null
@@ -1017,11 +1023,17 @@ export type Database = {
           file_size?: number | null
           file_type?: Database["public"]["Enums"]["document_type"] | null
           id?: string
+          intelligence?: Json | null
+          intelligence_confidence?: number | null
+          intelligence_extracted_at?: string | null
+          linked_decision_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
           name: string
           organization_id: string
           processed_at?: string | null
+          processing_status?: string | null
+          proposed_actions_count?: number | null
           storage_path: string
           summary?: string | null
           tags?: string[] | null
@@ -1035,11 +1047,17 @@ export type Database = {
           file_size?: number | null
           file_type?: Database["public"]["Enums"]["document_type"] | null
           id?: string
+          intelligence?: Json | null
+          intelligence_confidence?: number | null
+          intelligence_extracted_at?: string | null
+          linked_decision_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
           name?: string
           organization_id?: string
           processed_at?: string | null
+          processing_status?: string | null
+          proposed_actions_count?: number | null
           storage_path?: string
           summary?: string | null
           tags?: string[] | null
@@ -1052,6 +1070,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_linked_decision_id_fkey"
+            columns: ["linked_decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
             referencedColumns: ["id"]
           },
           {
