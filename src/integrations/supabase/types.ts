@@ -129,6 +129,264 @@ export type Database = {
           },
         ]
       }
+      agent_delegations: {
+        Row: {
+          action_pipeline_id: string | null
+          command_id: string | null
+          completed_at: string | null
+          context: Json
+          created_at: string
+          delegation_type: string
+          from_agent_id: string
+          id: string
+          organization_id: string
+          priority: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          task_description: string
+          to_agent_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_pipeline_id?: string | null
+          command_id?: string | null
+          completed_at?: string | null
+          context?: Json
+          created_at?: string
+          delegation_type: string
+          from_agent_id: string
+          id?: string
+          organization_id: string
+          priority?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          task_description: string
+          to_agent_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_pipeline_id?: string | null
+          command_id?: string | null
+          completed_at?: string | null
+          context?: Json
+          created_at?: string
+          delegation_type?: string
+          from_agent_id?: string
+          id?: string
+          organization_id?: string
+          priority?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          task_description?: string
+          to_agent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_delegations_action_pipeline_id_fkey"
+            columns: ["action_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "action_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_delegations_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "commands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_delegations_from_agent_id_fkey"
+            columns: ["from_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_delegations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_delegations_to_agent_id_fkey"
+            columns: ["to_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_execution_memory: {
+        Row: {
+          action_category: string
+          action_pipeline_id: string | null
+          action_type: string
+          agent_id: string
+          context_snapshot: Json
+          created_at: string
+          duration_ms: number | null
+          error_details: string | null
+          execution_evidence: Json
+          id: string
+          lessons_learned: string[] | null
+          organization_id: string
+          outcome: string
+          reasoning_chain: Json
+          similar_past_count: number | null
+          success_score: number | null
+        }
+        Insert: {
+          action_category?: string
+          action_pipeline_id?: string | null
+          action_type: string
+          agent_id: string
+          context_snapshot?: Json
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: string | null
+          execution_evidence?: Json
+          id?: string
+          lessons_learned?: string[] | null
+          organization_id: string
+          outcome: string
+          reasoning_chain?: Json
+          similar_past_count?: number | null
+          success_score?: number | null
+        }
+        Update: {
+          action_category?: string
+          action_pipeline_id?: string | null
+          action_type?: string
+          agent_id?: string
+          context_snapshot?: Json
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: string | null
+          execution_evidence?: Json
+          id?: string
+          lessons_learned?: string[] | null
+          organization_id?: string
+          outcome?: string
+          reasoning_chain?: Json
+          similar_past_count?: number | null
+          success_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_execution_memory_action_pipeline_id_fkey"
+            columns: ["action_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "action_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_execution_memory_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_execution_memory_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_follow_ups: {
+        Row: {
+          action_pipeline_id: string | null
+          agent_id: string
+          auto_created: boolean
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          description: string
+          due_at: string
+          follow_up_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          parent_follow_up_id: string | null
+          priority: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_pipeline_id?: string | null
+          agent_id: string
+          auto_created?: boolean
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          description: string
+          due_at: string
+          follow_up_type: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          parent_follow_up_id?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_pipeline_id?: string | null
+          agent_id?: string
+          auto_created?: boolean
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          description?: string
+          due_at?: string
+          follow_up_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          parent_follow_up_id?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_follow_ups_action_pipeline_id_fkey"
+            columns: ["action_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "action_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_follow_ups_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_follow_ups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_follow_ups_parent_follow_up_id_fkey"
+            columns: ["parent_follow_up_id"]
+            isOneToOne: false
+            referencedRelation: "agent_follow_ups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_instructions: {
         Row: {
           agent_id: string
@@ -1185,6 +1443,73 @@ export type Database = {
           },
           {
             foreignKeyName: "emails_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      execution_evidence: {
+        Row: {
+          action_pipeline_id: string
+          agent_id: string | null
+          confidence_score: number | null
+          created_at: string
+          discrepancies: Json | null
+          evidence_data: Json
+          evidence_type: string
+          id: string
+          organization_id: string
+          verification_method: string | null
+          verification_status: string
+          verified_at: string | null
+        }
+        Insert: {
+          action_pipeline_id: string
+          agent_id?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          discrepancies?: Json | null
+          evidence_data?: Json
+          evidence_type: string
+          id?: string
+          organization_id: string
+          verification_method?: string | null
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          action_pipeline_id?: string
+          agent_id?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          discrepancies?: Json | null
+          evidence_data?: Json
+          evidence_type?: string
+          id?: string
+          organization_id?: string
+          verification_method?: string | null
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_evidence_action_pipeline_id_fkey"
+            columns: ["action_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "action_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_evidence_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_evidence_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
