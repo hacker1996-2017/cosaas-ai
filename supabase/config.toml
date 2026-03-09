@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.hubspot]
 verify_jwt = false
+
+[functions.document-intelligence-actions]
+verify_jwt = false
