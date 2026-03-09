@@ -9,6 +9,7 @@ import { DocumentsPanel } from './DocumentsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 import { IntegrationsPanel } from './IntegrationsPanel';
 import { GoogleCalendarPanel } from './GoogleCalendarPanel';
+import { HubspotPanel } from './HubspotPanel';
 import { DashboardHeader } from './DashboardHeader';
 import { ActionPipelinePanel } from './ActionPipelinePanel';
 import { AuditLogPanel } from './AuditLogPanel';
