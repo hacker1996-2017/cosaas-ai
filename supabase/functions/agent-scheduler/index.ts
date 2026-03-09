@@ -279,7 +279,33 @@ async function executeCommandTask(supabase: ReturnType<typeof createClient>, tas
     .single();
 
   if (error) throw error;
-  return { command_id: data.id, command_text: config.command_text };
+
+  // Trigger process-command to actually execute the command through the AI pipeline
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  try {
+    const processResponse = await fetch(`${supabaseUrl}/functions/v1/process-command`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+      },
+      body: JSON.stringify({ commandId: data.id }),
+    });
+
+    if (processResponse.ok) {
+      const processResult = await processResponse.json();
+      return { command_id: data.id, command_text: config.command_text, processed: true, result: processResult };
+    } else {
+      const errText = await processResponse.text();
+      console.error(`process-command failed for scheduled command ${data.id}:`, errText);
+      return { command_id: data.id, command_text: config.command_text, processed: false, error: errText };
+    }
+  } catch (err) {
+    console.error(`process-command call error for ${data.id}:`, err);
+    return { command_id: data.id, command_text: config.command_text, processed: false, error: (err as Error).message };
+  }
 }
 
 async function executeActionPipelineTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
