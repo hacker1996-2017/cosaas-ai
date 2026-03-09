@@ -8,6 +8,7 @@ import { InternalCRM } from './InternalCRM';
 import { DocumentsPanel } from './DocumentsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 import { IntegrationsPanel } from './IntegrationsPanel';
+import { GoogleCalendarPanel } from './GoogleCalendarPanel';
 import { DashboardHeader } from './DashboardHeader';
 import { ActionPipelinePanel } from './ActionPipelinePanel';
 import { AuditLogPanel } from './AuditLogPanel';
@@ -24,6 +25,7 @@ import { MobileAgentsDrawer } from './MobileAgentsDrawer';
 import { OnboardingTour } from './OnboardingTour';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 
 // Map mobile tab IDs to the right-panel content they should show
 const mobileTabPanelMap: Record<string, string[]> = {
@@ -43,6 +45,9 @@ export function ExecutiveDashboard() {
   const isMobile = useIsMobile();
   const [mobileTab, setMobileTab] = useState('command');
   const [agentsDrawerOpen, setAgentsDrawerOpen] = useState(false);
+
+  // Initialize Google Calendar hook to handle OAuth callback on redirect
+  useGoogleCalendar();
 
   const handleMobileTabChange = (tab: string) => {
     if (tab === 'agents') {
@@ -128,6 +133,7 @@ export function ExecutiveDashboard() {
           <DocumentsPanel />
           <WorkflowsPanel />
           <IntegrationsPanel />
+          <GoogleCalendarPanel />
           <AgentSchedulerPanel />
           <UserManagementPanel />
           <ReportingDashboard />
