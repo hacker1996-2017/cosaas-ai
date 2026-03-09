@@ -169,8 +169,8 @@ ${truncatedContent}`;
     } else {
       userPrompt = `Analyze this document based on available metadata and infer likely intelligence:
 
-FILE: ${fileName}
-TYPE: ${fileType.toUpperCase()}
+FILE: ${safeFileName}
+TYPE: ${safeFileType.toUpperCase()}
 
 Note: Full text extraction unavailable for this file type. Provide metadata-based analysis and indicate this limitation in your confidence assessment.`;
     }
