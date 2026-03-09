@@ -78,10 +78,10 @@ export function useCreateStripeInvoice() {
 // ─── List recent payments ───────────────────────────────────────────────────
 export function useListStripePayments() {
   return useMutation({
-    mutationFn: (limit = 25) =>
+    mutationFn: (params?: { limit?: number }) =>
       callStripe<{
         payments: { id: string; amount: number; currency: string; status: string; description: string | null; created: string; customerEmail: string | null }[];
-      }>({ action: 'list_payments', limit }),
+      }>({ action: 'list_payments', limit: params?.limit ?? 25 }),
     onError: (e: Error) => toast.error(`Failed to load payments: ${e.message}`),
   });
 }
