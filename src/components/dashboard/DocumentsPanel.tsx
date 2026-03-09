@@ -104,6 +104,7 @@ export function DocumentsPanel({ className }: DocumentsPanelProps) {
   const [editName, setEditName] = useState('');
   const [editTags, setEditTags] = useState('');
   const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [textContent, setTextContent] = useState<string | null>(null);
   const [isLoadingView, setIsLoadingView] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
