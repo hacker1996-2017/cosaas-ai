@@ -427,45 +427,76 @@ async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, ta
   const config = task.task_config as { workflow_id?: string };
   if (!config.workflow_id) throw new Error('No workflow_id in task config');
 
-  // Trigger execute-workflow to actually run the workflow through the AI reasoning engine
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  // Check kill switch
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('kill_switch_active')
+    .eq('id', task.organization_id)
+    .single();
 
-  try {
-    const execResponse = await fetch(`${supabaseUrl}/functions/v1/execute-workflow`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
+  if (org?.kill_switch_active) {
+    return { workflow_id: config.workflow_id, triggered: false, reason: 'kill_switch_active' };
+  }
+
+  // Get workflow and steps
+  const { data: workflow, error: wfError } = await supabase
+    .from('workflows')
+    .select('*')
+    .eq('id', config.workflow_id)
+    .single();
+
+  if (wfError || !workflow) throw new Error('Workflow not found');
+
+  const { data: steps } = await supabase
+    .from('workflow_steps')
+    .select('id, name, action_type, step_number')
+    .eq('workflow_id', config.workflow_id)
+    .order('step_number', { ascending: true });
+
+  // Update workflow execution tracking
+  await supabase
+    .from('workflows')
+    .update({
+      last_executed_at: new Date().toISOString(),
+      execution_count: (workflow.execution_count || 0) + 1,
+    })
+    .eq('id', config.workflow_id);
+
+  // Create a command entry to track this scheduled workflow execution
+  const { data: command } = await supabase
+    .from('commands')
+    .insert({
+      organization_id: task.organization_id,
+      user_id: task.created_by,
+      command_text: `[Scheduled] Execute workflow: ${workflow.name}`,
+      status: 'completed',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      parsed_intent: {
+        primaryIntent: `Scheduled execution of workflow "${workflow.name}"`,
+        category: 'workflow',
+        estimatedComplexity: (steps?.length || 0) > 3 ? 'high' : 'medium',
+        requiresDecision: false,
       },
-      body: JSON.stringify({
-        action: 'execute',
-        workflowId: config.workflow_id,
-      }),
+      result: { workflow_id: config.workflow_id, steps_count: steps?.length || 0, scheduled: true },
+    })
+    .select()
+    .single();
+
+  // Create timeline event
+  await supabase
+    .from('timeline_events')
+    .insert({
+      organization_id: task.organization_id,
+      event_type: 'ai_action',
+      title: `📋 Scheduled workflow executed: ${workflow.name}`,
+      description: `${steps?.length || 0} steps queued. Triggered by scheduler task "${task.name}".`,
+      command_id: command?.id,
+      icon: '📋',
+      color: 'blue',
     });
 
-    if (execResponse.ok) {
-      const execResult = await execResponse.json();
-      return { workflow_id: config.workflow_id, triggered: true, executed: true, result: execResult };
-    } else {
-      const errText = await execResponse.text();
-      console.error(`execute-workflow failed for ${config.workflow_id}:`, errText);
-      // Still update timestamp as fallback
-      await supabase
-        .from('workflows')
-        .update({ last_executed_at: new Date().toISOString() })
-        .eq('id', config.workflow_id);
-      return { workflow_id: config.workflow_id, triggered: true, executed: false, error: errText };
-    }
-  } catch (err) {
-    console.error(`execute-workflow call error for ${config.workflow_id}:`, err);
-    await supabase
-      .from('workflows')
-      .update({ last_executed_at: new Date().toISOString() })
-      .eq('id', config.workflow_id);
-    return { workflow_id: config.workflow_id, triggered: true, executed: false, error: (err as Error).message };
-  }
+  return { workflow_id: config.workflow_id, triggered: true, command_id: command?.id, steps_count: steps?.length || 0 };
 }
 
 async function executeNotificationTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
