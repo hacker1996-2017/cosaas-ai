@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,38 @@ import type { Tables, Enums } from '@/integrations/supabase/types';
 
 export type Document = Tables<'documents'>;
 export type DocumentType = Enums<'document_type'>;
+
+export interface DocumentIntelligence {
+  summary: string;
+  tags: string[];
+  entities: {
+    people: string[];
+    organizations: string[];
+    dates: string[];
+    amounts: string[];
+    locations: string[];
+  };
+  insights: string[];
+  deadlines: Array<{ date: string; description: string; urgency: "low" | "medium" | "high" | "critical" }>;
+  action_proposals: Array<{
+    title: string;
+    description: string;
+    type: "task" | "email" | "workflow" | "pipeline_action";
+    priority: "low" | "medium" | "high";
+    suggested_assignee?: string;
+    deadline?: string;
+    risk_level: "low" | "medium" | "high" | "critical";
+  }>;
+  risk_signals: Array<{ signal: string; severity: "low" | "medium" | "high" | "critical" }>;
+  document_classification: {
+    category: string;
+    subcategory: string;
+    confidentiality: "public" | "internal" | "confidential" | "restricted";
+  };
+  key_metrics: Array<{ name: string; value: string; context: string }>;
+  relationships: Array<{ entity1: string; relationship: string; entity2: string }>;
+  confidence_score?: number;
+}
 
 interface UploadDocumentParams {
   file: File;
@@ -91,7 +123,6 @@ export function useDocuments() {
       const fileExt = file.name.split('.').pop() || 'bin';
       const storagePath = `${organizationId}/${fileId}.${fileExt}`;
 
-      // Track upload progress
       setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }));
 
       // Upload to storage
@@ -129,12 +160,12 @@ export function useDocuments() {
           agent_id: agentId || null,
           summary: 'Processing...',
           tags: [],
+          processing_status: 'pending',
         })
         .select()
         .single();
 
       if (insertError) {
-        // Clean up storage on error
         await supabase.storage.from('documents').remove([storagePath]);
         throw insertError;
       }
@@ -155,7 +186,6 @@ export function useDocuments() {
 
         if (processError) {
           console.error('Document processing error:', processError);
-          // Don't throw - document is uploaded, just processing failed
         }
       } catch (processErr) {
         console.error('Failed to invoke process-document:', processErr);
@@ -171,14 +201,14 @@ export function useDocuments() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents', organizationId] });
-      toast.success('Document uploaded successfully');
+      toast.success('Document uploaded - AI analysis in progress');
     },
     onError: (error) => {
       toast.error(`Upload failed: ${error.message}`);
     },
   });
 
-  // Update document (rename, update tags, etc.)
+  // Update document
   const updateMutation = useMutation({
     mutationFn: async ({ id, name, tags, summary }: UpdateDocumentParams) => {
       const updates: Partial<Document> = {};
@@ -208,7 +238,6 @@ export function useDocuments() {
   // Delete document
   const deleteMutation = useMutation({
     mutationFn: async (documentId: string) => {
-      // Get document to find storage path
       const { data: doc, error: fetchError } = await supabase
         .from('documents')
         .select('storage_path')
@@ -217,7 +246,6 @@ export function useDocuments() {
 
       if (fetchError) throw fetchError;
 
-      // Delete from storage
       if (doc?.storage_path) {
         const { error: storageError } = await supabase.storage
           .from('documents')
@@ -228,7 +256,6 @@ export function useDocuments() {
         }
       }
 
-      // Delete record
       const { error: deleteError } = await supabase
         .from('documents')
         .delete()
@@ -249,7 +276,7 @@ export function useDocuments() {
   const getDownloadUrl = useCallback(async (storagePath: string): Promise<string | null> => {
     const { data, error } = await supabase.storage
       .from('documents')
-      .createSignedUrl(storagePath, 3600); // 1 hour expiry
+      .createSignedUrl(storagePath, 3600);
 
     if (error) {
       console.error('Failed to get download URL:', error);
@@ -259,7 +286,7 @@ export function useDocuments() {
     return data.signedUrl;
   }, []);
 
-  // Get public view URL (for images)
+  // Get view URL
   const getViewUrl = useCallback(async (storagePath: string): Promise<string | null> => {
     const { data, error } = await supabase.storage
       .from('documents')
@@ -278,6 +305,12 @@ export function useDocuments() {
     mutationFn: async (document: Document) => {
       if (!organizationId) throw new Error('No organization');
 
+      // Reset processing status
+      await supabase
+        .from('documents')
+        .update({ processing_status: 'pending', summary: 'Reprocessing...' })
+        .eq('id', document.id);
+
       const { error } = await supabase.functions.invoke('process-document', {
         body: {
           documentId: document.id,
@@ -292,12 +325,44 @@ export function useDocuments() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents', organizationId] });
-      toast.success('Document reprocessed');
+      toast.success('Document reprocessing started');
     },
     onError: (error) => {
       toast.error(`Reprocessing failed: ${error.message}`);
     },
   });
+
+  // Create actions from document intelligence
+  const createActionsMutation = useMutation({
+    mutationFn: async ({ documentId, selectedActionIndices }: { documentId: string; selectedActionIndices?: number[] }) => {
+      if (!organizationId) throw new Error('No organization');
+
+      const { data, error } = await supabase.functions.invoke('document-intelligence-actions', {
+        body: {
+          documentId,
+          organizationId,
+          selectedActionIndices,
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['documents', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['action-pipeline', organizationId] });
+      toast.success(`${data.created_count} actions queued for approval`);
+    },
+    onError: (error) => {
+      toast.error(`Failed to create actions: ${error.message}`);
+    },
+  });
+
+  // Helper to get intelligence from document
+  const getDocumentIntelligence = useCallback((doc: Document): DocumentIntelligence | null => {
+    if (!doc.intelligence) return null;
+    return doc.intelligence as unknown as DocumentIntelligence;
+  }, []);
 
   return {
     documents,
@@ -313,7 +378,10 @@ export function useDocuments() {
     isDeleting: deleteMutation.isPending,
     reprocessDocument: reprocessMutation.mutate,
     isReprocessing: reprocessMutation.isPending,
+    createActionsFromDocument: createActionsMutation.mutate,
+    isCreatingActions: createActionsMutation.isPending,
     getDownloadUrl,
     getViewUrl,
+    getDocumentIntelligence,
   };
 }
