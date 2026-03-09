@@ -333,7 +333,50 @@ async function executeActionPipelineTask(supabase: ReturnType<typeof createClien
     .single();
 
   if (error) throw error;
-  return { action_pipeline_id: data.id };
+
+  // Trigger evaluate-action to run the policy engine on this new action
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  try {
+    const evalResponse = await fetch(`${supabaseUrl}/functions/v1/evaluate-action`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+      },
+      body: JSON.stringify({ actionId: data.id }),
+    });
+
+    if (evalResponse.ok) {
+      const evalResult = await evalResponse.json();
+      
+      // If approved, auto-dispatch
+      if (evalResult.status === 'approved') {
+        const dispatchResponse = await fetch(`${supabaseUrl}/functions/v1/dispatch-action`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+          },
+          body: JSON.stringify({ actionId: data.id }),
+        });
+
+        if (dispatchResponse.ok) {
+          const dispatchResult = await dispatchResponse.json();
+          return { action_pipeline_id: data.id, evaluated: true, dispatched: true, result: dispatchResult };
+        }
+      }
+      return { action_pipeline_id: data.id, evaluated: true, status: evalResult.status };
+    } else {
+      console.error(`evaluate-action failed for ${data.id}:`, await evalResponse.text());
+    }
+  } catch (err) {
+    console.error(`evaluate-action call error for ${data.id}:`, err);
+  }
+
+  return { action_pipeline_id: data.id, evaluated: false };
 }
 
 async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
