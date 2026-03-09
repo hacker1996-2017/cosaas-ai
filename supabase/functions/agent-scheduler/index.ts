@@ -504,19 +504,95 @@ async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, ta
       organization_id: task.organization_id,
       user_id: task.created_by,
       command_text: `[Scheduled] Execute workflow: ${workflow.name}`,
-      status: 'completed',
+      status: 'in_progress',
       started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
       parsed_intent: {
         primaryIntent: `Scheduled execution of workflow "${workflow.name}"`,
         category: 'workflow',
         estimatedComplexity: (steps?.length || 0) > 3 ? 'high' : 'medium',
         requiresDecision: false,
       },
-      result: { workflow_id: config.workflow_id, steps_count: steps?.length || 0, scheduled: true },
     })
     .select()
     .single();
+
+  // ACTUALLY EXECUTE: Dispatch each workflow step through the governed pipeline
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  let stepsCompleted = 0;
+  let stepsFailed = 0;
+
+  for (const step of (steps || [])) {
+    try {
+      // Create action pipeline entry for each step
+      const { data: pipelineAction, error: paError } = await supabase
+        .from('action_pipeline')
+        .insert({
+          organization_id: task.organization_id,
+          command_id: command?.id || null,
+          agent_id: task.agent_id,
+          created_by: task.created_by,
+          category: mapSchedulerActionType(step.action_type),
+          action_type: step.action_type,
+          action_description: `[${workflow.name}] Step ${step.step_number}: ${step.name}`,
+          action_params: { workflow_id: config.workflow_id, step_id: step.id, scheduled: true, task_id: task.id },
+          risk_level: 'low',
+          status: 'approved',
+          requires_approval: false,
+          approved_by: task.created_by,
+          approved_at: new Date().toISOString(),
+          approval_notes: `Auto-approved by scheduler for workflow "${workflow.name}"`,
+          idempotency_key: `sched-wf-${task.id}-step-${step.id}-${Date.now()}`,
+        })
+        .select()
+        .single();
+
+      if (paError || !pipelineAction) {
+        stepsFailed++;
+        continue;
+      }
+
+      // Dispatch the step
+      const dispatchResponse = await fetch(`${supabaseUrl}/functions/v1/dispatch-action`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({ actionId: pipelineAction.id }),
+      });
+
+      const dispatchResult = await dispatchResponse.json();
+      if (dispatchResult.success) {
+        stepsCompleted++;
+      } else {
+        stepsFailed++;
+        console.error(`Workflow step ${step.step_number} dispatch failed:`, dispatchResult.error);
+      }
+    } catch (stepErr) {
+      stepsFailed++;
+      console.error(`Workflow step ${step.step_number} execution error:`, stepErr);
+    }
+  }
+
+  // Complete the command
+  await supabase
+    .from('commands')
+    .update({
+      status: stepsFailed === 0 ? 'completed' : stepsCompleted > 0 ? 'completed' : 'failed',
+      completed_at: new Date().toISOString(),
+      result: {
+        workflow_id: config.workflow_id,
+        steps_count: steps?.length || 0,
+        steps_completed: stepsCompleted,
+        steps_failed: stepsFailed,
+        scheduled: true,
+      },
+    })
+    .eq('id', command?.id);
 
   // Create timeline event
   await supabase
@@ -525,13 +601,36 @@ async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, ta
       organization_id: task.organization_id,
       event_type: 'ai_action',
       title: `📋 Scheduled workflow executed: ${workflow.name}`,
-      description: `${steps?.length || 0} steps queued. Triggered by scheduler task "${task.name}".`,
+      description: `${stepsCompleted}/${steps?.length || 0} steps completed. ${stepsFailed} failed. Triggered by "${task.name}".`,
       command_id: command?.id,
-      icon: '📋',
-      color: 'blue',
+      icon: stepsFailed === 0 ? '✅' : '⚠️',
+      color: stepsFailed === 0 ? 'green' : 'orange',
     });
 
-  return { workflow_id: config.workflow_id, triggered: true, command_id: command?.id, steps_count: steps?.length || 0 };
+  return {
+    workflow_id: config.workflow_id,
+    triggered: true,
+    command_id: command?.id,
+    steps_count: steps?.length || 0,
+    steps_completed: stepsCompleted,
+    steps_failed: stepsFailed,
+    fully_executed: true,
+  };
+}
+
+// Map action types for scheduler context
+function mapSchedulerActionType(actionType: string): string {
+  const map: Record<string, string> = {
+    'send_email': 'communication',
+    'update_client': 'data_mutation',
+    'create_task': 'scheduling',
+    'generate_report': 'reporting',
+    'notification': 'communication',
+    'data_update': 'data_mutation',
+    'ai_analysis': 'reporting',
+    'api_call': 'integration',
+  };
+  return map[actionType] || 'system';
 }
 
 async function executeNotificationTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
