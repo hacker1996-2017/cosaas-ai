@@ -17,11 +17,12 @@ interface ProcessCommandResult {
     suggestedAgents: string[];
     estimatedComplexity: string;
     requiresDecision: boolean;
+    clarificationNeeded?: boolean;
   };
   assignedAgent?: { id: string; name: string };
   decision?: { id: string; title: string };
   pipelineAction?: { id: string; status: string };
-  status: 'pending_decision' | 'approved' | 'routed' | 'executed' | 'error';
+  status: 'pending_decision' | 'approved' | 'routed' | 'executed' | 'error' | 'awaiting_clarification';
   dispatched?: boolean;
   executionResult?: {
     success: boolean;
@@ -29,13 +30,19 @@ interface ProcessCommandResult {
     evidence?: Record<string, unknown>;
     outputData?: Record<string, unknown>;
   } | null;
+  aiResponse?: {
+    message: string;
+    type: string;
+    options?: string[];
+    executionSteps?: Array<{ label: string; status: string; detail?: string }>;
+  };
 }
+
 export function useCommands() {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
 
-  // Fetch commands for the current user's organization
   const { data: commands, isLoading, error } = useQuery({
     queryKey: ['commands', user?.id],
     queryFn: async () => {
@@ -51,21 +58,18 @@ export function useCommands() {
     enabled: !!user,
   });
 
-  // Enable realtime after initial load
   useEffect(() => {
     if (commands && !realtimeEnabled) {
       setRealtimeEnabled(true);
     }
   }, [commands, realtimeEnabled]);
 
-  // Realtime subscription
   useRealtimeSubscription<Command>({
     table: 'commands',
     enabled: realtimeEnabled && !!user,
     onInsert: (newCommand) => {
       queryClient.setQueryData<Command[]>(['commands', user?.id], (old) => {
         if (!old) return [newCommand];
-        // Avoid duplicates
         if (old.some(cmd => cmd.id === newCommand.id)) return old;
         return [newCommand, ...old];
       });
@@ -84,14 +88,13 @@ export function useCommands() {
     },
   });
 
-  // Process command with AI
-  const processCommand = async (commandId: string): Promise<ProcessCommandResult> => {
+  const processCommand = async (commandId: string, userResponse?: string): Promise<ProcessCommandResult> => {
     if (!session?.access_token) {
       throw new Error('Not authenticated');
     }
 
     const response = await supabase.functions.invoke('process-command', {
-      body: { commandId },
+      body: userResponse ? { commandId, userResponse } : { commandId },
     });
 
     if (response.error) {
@@ -101,12 +104,10 @@ export function useCommands() {
     return response.data as ProcessCommandResult;
   };
 
-  // Create command mutation with auto-processing
   const createCommand = useMutation({
     mutationFn: async (commandText: string) => {
       if (!user) throw new Error('User not authenticated');
 
-      // First, get the user's organization
       const { data: profile } = await supabase
         .from('profiles')
         .select('organization_id')
@@ -132,20 +133,49 @@ export function useCommands() {
         .single();
 
       if (error) throw error;
-      
-      // Trigger AI processing
+
       try {
         const result = await processCommand(data.id);
         return { command: data, aiResult: result };
       } catch (aiError) {
         console.error('AI processing failed:', aiError);
-        // Command still created, just not AI-processed
         return { command: data, aiResult: null };
       }
     },
   });
 
-  // Calculate stats
+  // Respond to a clarification question
+  const respondToCommandMutation = useMutation({
+    mutationFn: async ({ commandId, userResponse }: { commandId: string; userResponse: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Optimistically update the command's result to show the user's response
+      queryClient.setQueryData<Command[]>(['commands', user?.id], (old) => {
+        if (!old) return old;
+        return old.map((cmd) => {
+          if (cmd.id === commandId) {
+            return {
+              ...cmd,
+              result: {
+                ...(cmd.result as Record<string, unknown> || {}),
+                awaiting_clarification: false,
+                user_clarification: userResponse,
+              },
+            } as Command;
+          }
+          return cmd;
+        });
+      });
+
+      const result = await processCommand(commandId, userResponse);
+      return { commandId, aiResult: result };
+    },
+  });
+
+  const respondToCommand = async (commandId: string, userResponse: string) => {
+    return respondToCommandMutation.mutateAsync({ commandId, userResponse });
+  };
+
   const activeCommands = commands?.filter(c => c.status === 'in_progress').length || 0;
   const queuedCommands = commands?.filter(c => c.status === 'queued').length || 0;
   const completedCommands = commands?.filter(c => c.status === 'completed').length || 0;
@@ -156,6 +186,8 @@ export function useCommands() {
     error,
     createCommand: createCommand.mutateAsync,
     isCreating: createCommand.isPending,
+    respondToCommand,
+    isResponding: respondToCommandMutation.isPending,
     processCommand,
     stats: {
       active: activeCommands,
