@@ -389,55 +389,38 @@ async function executeActionPipelineTask(supabase: ReturnType<typeof createClien
       category: config.category || 'system',
       status: 'created',
       risk_level: 'low',
+      idempotency_key: `sched-pipe-${task.id}-${Date.now()}`,
     })
     .select()
     .single();
 
   if (error) throw error;
 
-  // Trigger evaluate-action to run the policy engine on this new action
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  try {
-    const evalResponse = await fetch(`${supabaseUrl}/functions/v1/evaluate-action`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-      },
-      body: JSON.stringify({ actionId: data.id }),
-    });
+  // Inline policy evaluation (same logic as evaluate-action but using service role)
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('kill_switch_active, autonomy_level')
+    .eq('id', task.organization_id)
+    .single();
 
-    if (evalResponse.ok) {
-      const evalResult = await evalResponse.json();
-      
-      // If approved, auto-dispatch
-      if (evalResult.status === 'approved') {
-        const dispatchResponse = await fetch(`${supabaseUrl}/functions/v1/dispatch-action`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'Content-Type': 'application/json',
-            'apikey': supabaseAnonKey,
-          },
-          body: JSON.stringify({ actionId: data.id }),
-        });
-
-        if (dispatchResponse.ok) {
-          const dispatchResult = await dispatchResponse.json();
-          return { action_pipeline_id: data.id, evaluated: true, dispatched: true, result: dispatchResult };
-        }
-      }
-      return { action_pipeline_id: data.id, evaluated: true, status: evalResult.status };
-    } else {
-      console.error(`evaluate-action failed for ${data.id}:`, await evalResponse.text());
-    }
-  } catch (err) {
-    console.error(`evaluate-action call error for ${data.id}:`, err);
+  if (org?.kill_switch_active) {
+    await supabase.from('action_pipeline').update({ status: 'cancelled', error_message: 'Kill switch active' }).eq('id', data.id);
+    return { action_pipeline_id: data.id, status: 'cancelled' };
   }
 
-  return { action_pipeline_id: data.id, evaluated: false };
+  // Check autonomy level — scheduled tasks from approved schedules are pre-authorized
+  const autoApprove = org?.autonomy_level === 'execute_autonomous' || org?.autonomy_level === 'execute_with_approval';
+
+  await supabase
+    .from('action_pipeline')
+    .update({
+      status: autoApprove ? 'approved' : 'pending_approval',
+      policy_evaluated_at: new Date().toISOString(),
+      requires_approval: !autoApprove,
+    })
+    .eq('id', data.id);
+
+  return { action_pipeline_id: data.id, status: autoApprove ? 'approved' : 'pending_approval' };
 }
 
 async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
