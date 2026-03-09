@@ -582,64 +582,81 @@ export function DocumentsPanel({ className }: DocumentsPanelProps) {
         </DialogContent>
       </Dialog>
 
-      {/* View Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-xl">{typeIcons[selectedDocument?.file_type || 'other']}</span>
-              {selectedDocument?.name}
-            </DialogTitle>
-            <DialogDescription>
-              {formatFileSize(selectedDocument?.file_size ?? null)} • Uploaded{' '}
-              {selectedDocument?.created_at &&
-                formatDistanceToNow(new Date(selectedDocument.created_at), { addSuffix: true })}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-auto">
+      {/* Full Document Preview Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={(open) => { setViewDialogOpen(open); if (!open) { setViewUrl(null); setTextContent(null); } }}>
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden">
+          {/* Header bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-background/95 backdrop-blur-sm shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xl shrink-0">{typeIcons[selectedDocument?.file_type || 'other']}</span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-foreground truncate">{selectedDocument?.name}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {formatFileSize(selectedDocument?.file_size ?? null)} • Uploaded{' '}
+                  {selectedDocument?.created_at &&
+                    formatDistanceToNow(new Date(selectedDocument.created_at), { addSuffix: true })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {selectedDocument && (
+                <Button variant="outline" size="sm" onClick={() => handleDownload(selectedDocument)}>
+                  <Download className="w-3.5 h-3.5 mr-1.5" /> Download
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Preview area - takes remaining space */}
+          <div className="flex-1 min-h-0 bg-muted/30">
             {isLoadingView ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Loading document preview…</p>
+                </div>
               </div>
             ) : viewUrl ? (
-              selectedDocument?.file_type === 'image' ? (
-                <img src={viewUrl} alt={selectedDocument?.name} className="max-w-full h-auto rounded-lg" />
-              ) : selectedDocument?.file_type === 'pdf' ? (
-                <iframe src={viewUrl} className="w-full h-[60vh] rounded-lg border" title={selectedDocument?.name} />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                  <p>Preview not available for this file type</p>
-                  <Button variant="outline" className="mt-4" onClick={() => selectedDocument && handleDownload(selectedDocument)}>
-                    <Download className="w-4 h-4 mr-2" /> Download to view
-                  </Button>
-                </div>
-              )
+              <DocumentPreviewContent
+                url={viewUrl}
+                fileType={selectedDocument?.file_type || 'other'}
+                fileName={selectedDocument?.name || 'document'}
+                textContent={textContent}
+                onDownload={() => selectedDocument && handleDownload(selectedDocument)}
+              />
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                <p>Could not load preview</p>
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <AlertCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Could not load preview</p>
+                  {selectedDocument && (
+                    <Button variant="outline" size="sm" className="mt-3" onClick={() => handleDownload(selectedDocument)}>
+                      <Download className="w-3.5 h-3.5 mr-1.5" /> Download instead
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          {selectedDocument && (
-            <div className="space-y-3 pt-4 border-t">
-              <div>
-                <h4 className="text-sm font-medium mb-1">AI Summary</h4>
-                <p className="text-sm text-muted-foreground">{selectedDocument.summary || 'No summary available'}</p>
-              </div>
-              {selectedDocument.tags && selectedDocument.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-1">Tags</h4>
-                  <div className="flex flex-wrap gap-1">
+          {/* Bottom info bar */}
+          {selectedDocument && (selectedDocument.summary || (selectedDocument.tags && selectedDocument.tags.length > 0)) && (
+            <div className="px-4 py-2.5 border-t border-border/50 bg-background/95 backdrop-blur-sm shrink-0">
+              <div className="flex items-start gap-4">
+                {selectedDocument.summary && selectedDocument.summary !== 'Processing...' && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">AI Summary</p>
+                    <p className="text-xs text-foreground/80 line-clamp-2">{selectedDocument.summary}</p>
+                  </div>
+                )}
+                {selectedDocument.tags && selectedDocument.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 shrink-0">
                     {selectedDocument.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                      <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
