@@ -8,6 +8,7 @@ import { InternalCRM } from './InternalCRM';
 import { DocumentsPanel } from './DocumentsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 import { IntegrationsPanel } from './IntegrationsPanel';
+import { GoogleCalendarPanel } from './GoogleCalendarPanel';
 import { DashboardHeader } from './DashboardHeader';
 import { ActionPipelinePanel } from './ActionPipelinePanel';
 import { AuditLogPanel } from './AuditLogPanel';
@@ -24,6 +25,7 @@ import { MobileAgentsDrawer } from './MobileAgentsDrawer';
 import { OnboardingTour } from './OnboardingTour';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 
 // Map mobile tab IDs to the right-panel content they should show
 const mobileTabPanelMap: Record<string, string[]> = {
