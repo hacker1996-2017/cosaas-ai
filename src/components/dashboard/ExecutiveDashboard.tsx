@@ -135,6 +135,7 @@ export function ExecutiveDashboard() {
           <WorkflowsPanel />
           <IntegrationsPanel />
           <GoogleCalendarPanel />
+          <HubspotPanel />
           <AgentSchedulerPanel />
           <UserManagementPanel />
           <ReportingDashboard />
