@@ -420,22 +420,75 @@ async function executeDataSyncTask(supabase: ReturnType<typeof createClient>, ta
 }
 
 async function executeReportTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
-  const config = task.task_config as { report_type?: string };
+  const config = task.task_config as { report_type?: string; scope?: string; metrics?: string[] };
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-  // Create a notification with the report
+  let reportContent = `Scheduled ${config.report_type || 'general'} report has been generated.`;
+
+  // Generate actual AI-powered report
+  if (lovableApiKey) {
+    try {
+      // Gather org stats for the report
+      const [clientsRes, pipelineRes, emailsRes, commandsRes] = await Promise.all([
+        supabase.from('clients').select('id, name, status, mrr, risk_of_churn, health_score', { count: 'exact' }).eq('organization_id', task.organization_id),
+        supabase.from('action_pipeline').select('id, status, category, risk_level', { count: 'exact' }).eq('organization_id', task.organization_id),
+        supabase.from('emails').select('id, status', { count: 'exact' }).eq('organization_id', task.organization_id),
+        supabase.from('commands').select('id, status', { count: 'exact' }).eq('organization_id', task.organization_id),
+      ]);
+
+      const stats = {
+        total_clients: clientsRes.count || 0,
+        active_clients: clientsRes.data?.filter(c => c.status === 'active').length || 0,
+        total_mrr: clientsRes.data?.reduce((s, c) => s + (c.mrr || 0), 0) || 0,
+        high_risk_clients: clientsRes.data?.filter(c => c.risk_of_churn === 'high' || c.risk_of_churn === 'critical').length || 0,
+        avg_health: clientsRes.data?.length ? Math.round(clientsRes.data.reduce((s, c) => s + (c.health_score || 0), 0) / clientsRes.data.length) : 0,
+        pipeline_total: pipelineRes.count || 0,
+        pipeline_completed: pipelineRes.data?.filter(p => p.status === 'completed').length || 0,
+        pipeline_failed: pipelineRes.data?.filter(p => p.status === 'failed').length || 0,
+        emails_sent: emailsRes.data?.filter(e => e.status === 'sent').length || 0,
+        commands_total: commandsRes.count || 0,
+      };
+
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: `You are an executive analyst for a ${config.report_type || 'general'} report. Generate a concise, actionable executive summary with key metrics, trends, risks, and recommendations. Use bullet points and bold for emphasis. Keep it under 500 words.` },
+            { role: 'user', content: `Generate a ${config.report_type || 'general'} report.\nScope: ${config.scope || 'all'}\nMetrics focus: ${(config.metrics || []).join(', ') || 'all'}\n\nData: ${JSON.stringify(stats)}` },
+          ],
+          temperature: 0.4,
+        }),
+      });
+
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        reportContent = aiData.choices?.[0]?.message?.content || reportContent;
+      }
+    } catch (err) {
+      console.error('AI report generation error:', err);
+    }
+  }
+
+  // Create a notification with the actual report content
   await supabase.from('notifications').insert({
     organization_id: task.organization_id,
     user_id: task.created_by,
-    title: `Report ready: ${task.name}`,
-    body: `Scheduled ${config.report_type || 'general'} report has been generated.`,
+    title: `📊 Report: ${task.name}`,
+    body: reportContent.substring(0, 2000),
     category: 'system',
     priority: 'normal',
     source_type: 'scheduler',
     source_id: task.id,
     icon: '📊',
+    metadata: { report_type: config.report_type, full_report: reportContent },
   });
 
-  return { report_type: config.report_type, generated: true };
+  return { report_type: config.report_type, generated: true, ai_generated: !!lovableApiKey, report_length: reportContent.length };
 }
 
 // ─── Scheduling Logic ────────────────────────────────────────────────
