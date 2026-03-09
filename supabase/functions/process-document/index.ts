@@ -342,7 +342,7 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
         confidenceScore = intelligence.confidence_score || 0.85;
       } catch (parseError) {
         console.error("Failed to parse tool call arguments:", parseError);
-        intelligence = createFallbackIntelligence(fileName, fileType);
+        intelligence = createFallbackIntelligence(safeFileName, safeFileType);
         confidenceScore = 0.3;
       }
     } else {
