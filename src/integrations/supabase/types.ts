@@ -1209,6 +1209,51 @@ export type Database = {
         }
         Relationships: []
       }
+      hubspot_config: {
+        Row: {
+          access_token: string
+          connected_by: string | null
+          contacts_synced: number | null
+          created_at: string
+          hub_domain: string | null
+          hub_name: string | null
+          id: string
+          last_sync_at: string | null
+          organization_id: string
+          portal_id: string | null
+          sync_config: Json | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          connected_by?: string | null
+          contacts_synced?: number | null
+          created_at?: string
+          hub_domain?: string | null
+          hub_name?: string | null
+          id?: string
+          last_sync_at?: string | null
+          organization_id: string
+          portal_id?: string | null
+          sync_config?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          connected_by?: string | null
+          contacts_synced?: number | null
+          created_at?: string
+          hub_domain?: string | null
+          hub_name?: string | null
+          id?: string
+          last_sync_at?: string | null
+          organization_id?: string
+          portal_id?: string | null
+          sync_config?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       industry_kits: {
         Row: {
           created_at: string
