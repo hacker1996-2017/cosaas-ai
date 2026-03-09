@@ -65,9 +65,9 @@ const formatFileSize = (bytes: number | null): string => {
 };
 
 const riskColors: Record<string, string> = {
-  low: 'text-emerald-500',
-  medium: 'text-amber-500',
-  high: 'text-orange-500',
+  low: 'text-green-600 dark:text-green-400',
+  medium: 'text-yellow-600 dark:text-yellow-400',
+  high: 'text-orange-600 dark:text-orange-400',
   critical: 'text-destructive',
 };
 
