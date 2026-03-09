@@ -396,7 +396,7 @@ async function executeActionPipelineTask(supabase: ReturnType<typeof createClien
 
   if (error) throw error;
 
-  // Inline policy evaluation (same logic as evaluate-action but using service role)
+  // Inline policy evaluation
   const { data: org } = await supabase
     .from('organizations')
     .select('kill_switch_active, autonomy_level')
@@ -408,7 +408,7 @@ async function executeActionPipelineTask(supabase: ReturnType<typeof createClien
     return { action_pipeline_id: data.id, status: 'cancelled' };
   }
 
-  // Check autonomy level — scheduled tasks from approved schedules are pre-authorized
+  // Scheduled tasks from approved schedules are pre-authorized
   const autoApprove = org?.autonomy_level === 'execute_autonomous' || org?.autonomy_level === 'execute_with_approval';
 
   await supabase
@@ -417,10 +417,45 @@ async function executeActionPipelineTask(supabase: ReturnType<typeof createClien
       status: autoApprove ? 'approved' : 'pending_approval',
       policy_evaluated_at: new Date().toISOString(),
       requires_approval: !autoApprove,
+      approved_by: autoApprove ? task.created_by : null,
+      approved_at: autoApprove ? new Date().toISOString() : null,
+      approval_notes: autoApprove ? `Auto-approved by scheduler (autonomy: ${org?.autonomy_level})` : null,
     })
     .eq('id', data.id);
 
-  return { action_pipeline_id: data.id, status: autoApprove ? 'approved' : 'pending_approval' };
+  // AUTO-DISPATCH: If approved, execute inline using service role
+  if (autoApprove) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+      // Dispatch using service role auth (scheduler has no user JWT)
+      const dispatchResponse = await fetch(`${supabaseUrl}/functions/v1/dispatch-action`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({ actionId: data.id }),
+      });
+
+      const dispatchResult = await dispatchResponse.json();
+      console.log(`Scheduler auto-dispatched pipeline action ${data.id}:`, dispatchResult.success ? 'success' : dispatchResult.error);
+
+      return {
+        action_pipeline_id: data.id,
+        status: dispatchResult.success ? 'completed' : 'dispatch_failed',
+        dispatched: true,
+        result: dispatchResult,
+      };
+    } catch (dispatchErr) {
+      console.error('Scheduler dispatch error:', dispatchErr);
+      return { action_pipeline_id: data.id, status: 'approved', dispatch_error: dispatchErr.message };
+    }
+  }
+
+  return { action_pipeline_id: data.id, status: 'pending_approval' };
 }
 
 async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
