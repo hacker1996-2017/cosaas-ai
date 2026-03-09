@@ -87,9 +87,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { documentId, fileName, fileType, storagePath, organizationId }: ProcessDocumentRequest = await req.json();
+    const body = await req.json();
+    const { documentId, fileName, fileType, storagePath, organizationId } = body as Partial<ProcessDocumentRequest>;
 
-    console.log(`Processing document: ${fileName} (${documentId})`);
+    if (!documentId || !organizationId) {
+      return new Response(
+        JSON.stringify({ error: "documentId and organizationId are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const safeFileName = fileName || "unknown";
+    const safeFileType = (fileType || "").toLowerCase();
+    const safeStoragePath = storagePath || "";
+
+    console.log(`Processing document: ${safeFileName} (${documentId})`);
 
     // Update status to processing
     await supabase
