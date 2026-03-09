@@ -340,19 +340,45 @@ async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, ta
   const config = task.task_config as { workflow_id?: string };
   if (!config.workflow_id) throw new Error('No workflow_id in task config');
 
-  // Update workflow execution count
-  const { data, error } = await supabase
-    .from('workflows')
-    .update({
-      last_executed_at: new Date().toISOString(),
-      execution_count: undefined, // will be handled by the workflow engine
-    })
-    .eq('id', config.workflow_id)
-    .select()
-    .single();
+  // Trigger execute-workflow to actually run the workflow through the AI reasoning engine
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-  if (error) throw error;
-  return { workflow_id: config.workflow_id, triggered: true };
+  try {
+    const execResponse = await fetch(`${supabaseUrl}/functions/v1/execute-workflow`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+      },
+      body: JSON.stringify({
+        action: 'execute',
+        workflowId: config.workflow_id,
+      }),
+    });
+
+    if (execResponse.ok) {
+      const execResult = await execResponse.json();
+      return { workflow_id: config.workflow_id, triggered: true, executed: true, result: execResult };
+    } else {
+      const errText = await execResponse.text();
+      console.error(`execute-workflow failed for ${config.workflow_id}:`, errText);
+      // Still update timestamp as fallback
+      await supabase
+        .from('workflows')
+        .update({ last_executed_at: new Date().toISOString() })
+        .eq('id', config.workflow_id);
+      return { workflow_id: config.workflow_id, triggered: true, executed: false, error: errText };
+    }
+  } catch (err) {
+    console.error(`execute-workflow call error for ${config.workflow_id}:`, err);
+    await supabase
+      .from('workflows')
+      .update({ last_executed_at: new Date().toISOString() })
+      .eq('id', config.workflow_id);
+    return { workflow_id: config.workflow_id, triggered: true, executed: false, error: (err as Error).message };
+  }
 }
 
 async function executeNotificationTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
