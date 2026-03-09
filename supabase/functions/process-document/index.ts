@@ -368,7 +368,7 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
     }
 
     // Update document with full intelligence
-    await updateDocumentWithIntelligence(supabase, documentId, intelligence, confidenceScore, organizationId, fileName);
+    await updateDocumentWithIntelligence(supabase, documentId, intelligence, confidenceScore, organizationId, safeFileName);
 
     console.log(`Document intelligence extracted: ${documentId}, confidence: ${confidenceScore}`);
 
