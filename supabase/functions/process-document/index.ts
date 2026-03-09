@@ -315,9 +315,9 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
       console.error("AI API error:", aiResponse.status, errorText);
       
       // Fallback to basic analysis
-      const fallbackIntelligence = createFallbackIntelligence(fileName, fileType);
+      const fallbackIntelligence = createFallbackIntelligence(safeFileName, safeFileType);
       
-      await updateDocumentWithIntelligence(supabase, documentId, fallbackIntelligence, 0.3, organizationId, fileName);
+      await updateDocumentWithIntelligence(supabase, documentId, fallbackIntelligence, 0.3, organizationId, safeFileName);
 
       return new Response(
         JSON.stringify({ 
