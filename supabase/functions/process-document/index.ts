@@ -161,8 +161,8 @@ ACCURACY IS PARAMOUNT. If uncertain, indicate confidence level. Never fabricate 
       
       userPrompt = `Analyze this document and extract comprehensive intelligence:
 
-FILE: ${fileName}
-TYPE: ${fileType.toUpperCase()}
+FILE: ${safeFileName}
+TYPE: ${safeFileType.toUpperCase()}
 
 CONTENT:
 ${truncatedContent}`;
