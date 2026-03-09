@@ -46,6 +46,9 @@ export function ExecutiveDashboard() {
   const [mobileTab, setMobileTab] = useState('command');
   const [agentsDrawerOpen, setAgentsDrawerOpen] = useState(false);
 
+  // Initialize Google Calendar hook to handle OAuth callback on redirect
+  useGoogleCalendar();
+
   const handleMobileTabChange = (tab: string) => {
     if (tab === 'agents') {
       setAgentsDrawerOpen(true);
