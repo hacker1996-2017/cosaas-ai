@@ -793,7 +793,9 @@ Deno.serve(async (req) => {
         const intelligenceResponse = await fetch(`${supabaseUrl}/functions/v1/agent-intelligence`, {
           method: 'POST',
           headers: {
+            'Authorization': authHeader,
             'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
           },
           body: JSON.stringify({
             action: 'post_execution',

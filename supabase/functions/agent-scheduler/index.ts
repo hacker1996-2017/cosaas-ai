@@ -266,7 +266,8 @@ async function executeCommandTask(supabase: ReturnType<typeof createClient>, tas
   const config = task.task_config as { command_text?: string };
   if (!config.command_text) throw new Error('No command_text in task config');
 
-  const { data, error } = await supabase
+  // Insert command
+  const { data: command, error } = await supabase
     .from('commands')
     .insert({
       organization_id: task.organization_id,
@@ -279,7 +280,93 @@ async function executeCommandTask(supabase: ReturnType<typeof createClient>, tas
     .single();
 
   if (error) throw error;
-  return { command_id: data.id, command_text: config.command_text };
+
+  // Use AI to parse intent directly (same logic as process-command but inline for scheduler)
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (lovableApiKey) {
+    try {
+      // Fetch org context
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('name, industry, market, autonomy_level')
+        .eq('id', task.organization_id)
+        .single();
+
+      const { data: agents } = await supabase
+        .from('agents')
+        .select('id, name, role, emoji, status')
+        .eq('organization_id', task.organization_id);
+
+      // AI parse
+      const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: `Parse this scheduled command for ${org?.name || 'the company'}. Output JSON: {"primaryIntent":"...","category":"client_management|communication|analysis|scheduling|workflow|reporting|other","estimatedComplexity":"low|medium|high","requiresDecision":false}` },
+            { role: 'user', content: config.command_text },
+          ],
+          temperature: 0.2,
+          max_tokens: 500,
+        }),
+      });
+
+      let parsedIntent = { primaryIntent: config.command_text, category: 'other', estimatedComplexity: 'low', requiresDecision: false };
+      if (aiResp.ok) {
+        const aiData = await aiResp.json();
+        const content = aiData.choices?.[0]?.message?.content || '';
+        try {
+          const match = content.match(/\{[\s\S]*\}/);
+          if (match) parsedIntent = { ...parsedIntent, ...JSON.parse(match[0]) };
+        } catch { /* use defaults */ }
+      }
+
+      // Update command with parsed intent
+      await supabase
+        .from('commands')
+        .update({ status: 'in_progress', started_at: new Date().toISOString(), parsed_intent: parsedIntent })
+        .eq('id', command.id);
+
+      // Assign best agent
+      const bestAgent = (agents || []).find(a => a.status !== 'error') || null;
+
+      // Create action pipeline entry
+      const { data: pipelineAction } = await supabase
+        .from('action_pipeline')
+        .insert({
+          organization_id: task.organization_id,
+          command_id: command.id,
+          agent_id: bestAgent?.id || null,
+          created_by: task.created_by,
+          category: 'system',
+          action_type: parsedIntent.category || 'other',
+          action_description: parsedIntent.primaryIntent || config.command_text,
+          action_params: { original_command: config.command_text, scheduled: true, task_id: task.id },
+          risk_level: 'low',
+          status: parsedIntent.requiresDecision ? 'pending_approval' : 'approved',
+          requires_approval: parsedIntent.requiresDecision,
+          idempotency_key: `sched-${task.id}-${Date.now()}`,
+        })
+        .select()
+        .single();
+
+      // Complete command
+      await supabase
+        .from('commands')
+        .update({ status: 'completed', completed_at: new Date().toISOString(), result: { action_pipeline_id: pipelineAction?.id, scheduled: true } })
+        .eq('id', command.id);
+
+      return { command_id: command.id, action_pipeline_id: pipelineAction?.id, processed: true };
+    } catch (err) {
+      console.error(`Scheduled command AI processing error:`, err);
+    }
+  }
+
+  return { command_id: command.id, command_text: config.command_text, processed: false };
 }
 
 async function executeActionPipelineTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
@@ -302,31 +389,114 @@ async function executeActionPipelineTask(supabase: ReturnType<typeof createClien
       category: config.category || 'system',
       status: 'created',
       risk_level: 'low',
+      idempotency_key: `sched-pipe-${task.id}-${Date.now()}`,
     })
     .select()
     .single();
 
   if (error) throw error;
-  return { action_pipeline_id: data.id };
+
+  // Inline policy evaluation (same logic as evaluate-action but using service role)
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('kill_switch_active, autonomy_level')
+    .eq('id', task.organization_id)
+    .single();
+
+  if (org?.kill_switch_active) {
+    await supabase.from('action_pipeline').update({ status: 'cancelled', error_message: 'Kill switch active' }).eq('id', data.id);
+    return { action_pipeline_id: data.id, status: 'cancelled' };
+  }
+
+  // Check autonomy level — scheduled tasks from approved schedules are pre-authorized
+  const autoApprove = org?.autonomy_level === 'execute_autonomous' || org?.autonomy_level === 'execute_with_approval';
+
+  await supabase
+    .from('action_pipeline')
+    .update({
+      status: autoApprove ? 'approved' : 'pending_approval',
+      policy_evaluated_at: new Date().toISOString(),
+      requires_approval: !autoApprove,
+    })
+    .eq('id', data.id);
+
+  return { action_pipeline_id: data.id, status: autoApprove ? 'approved' : 'pending_approval' };
 }
 
 async function executeWorkflowTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
   const config = task.task_config as { workflow_id?: string };
   if (!config.workflow_id) throw new Error('No workflow_id in task config');
 
-  // Update workflow execution count
-  const { data, error } = await supabase
+  // Check kill switch
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('kill_switch_active')
+    .eq('id', task.organization_id)
+    .single();
+
+  if (org?.kill_switch_active) {
+    return { workflow_id: config.workflow_id, triggered: false, reason: 'kill_switch_active' };
+  }
+
+  // Get workflow and steps
+  const { data: workflow, error: wfError } = await supabase
+    .from('workflows')
+    .select('*')
+    .eq('id', config.workflow_id)
+    .single();
+
+  if (wfError || !workflow) throw new Error('Workflow not found');
+
+  const { data: steps } = await supabase
+    .from('workflow_steps')
+    .select('id, name, action_type, step_number')
+    .eq('workflow_id', config.workflow_id)
+    .order('step_number', { ascending: true });
+
+  // Update workflow execution tracking
+  await supabase
     .from('workflows')
     .update({
       last_executed_at: new Date().toISOString(),
-      execution_count: undefined, // will be handled by the workflow engine
+      execution_count: (workflow.execution_count || 0) + 1,
     })
-    .eq('id', config.workflow_id)
+    .eq('id', config.workflow_id);
+
+  // Create a command entry to track this scheduled workflow execution
+  const { data: command } = await supabase
+    .from('commands')
+    .insert({
+      organization_id: task.organization_id,
+      user_id: task.created_by,
+      command_text: `[Scheduled] Execute workflow: ${workflow.name}`,
+      status: 'completed',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      parsed_intent: {
+        primaryIntent: `Scheduled execution of workflow "${workflow.name}"`,
+        category: 'workflow',
+        estimatedComplexity: (steps?.length || 0) > 3 ? 'high' : 'medium',
+        requiresDecision: false,
+      },
+      result: { workflow_id: config.workflow_id, steps_count: steps?.length || 0, scheduled: true },
+    })
     .select()
     .single();
 
-  if (error) throw error;
-  return { workflow_id: config.workflow_id, triggered: true };
+  // Create timeline event
+  await supabase
+    .from('timeline_events')
+    .insert({
+      organization_id: task.organization_id,
+      event_type: 'ai_action',
+      title: `📋 Scheduled workflow executed: ${workflow.name}`,
+      description: `${steps?.length || 0} steps queued. Triggered by scheduler task "${task.name}".`,
+      command_id: command?.id,
+      icon: '📋',
+      color: 'blue',
+    });
+
+  return { workflow_id: config.workflow_id, triggered: true, command_id: command?.id, steps_count: steps?.length || 0 };
 }
 
 async function executeNotificationTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
@@ -368,22 +538,75 @@ async function executeDataSyncTask(supabase: ReturnType<typeof createClient>, ta
 }
 
 async function executeReportTask(supabase: ReturnType<typeof createClient>, task: ScheduledTask) {
-  const config = task.task_config as { report_type?: string };
+  const config = task.task_config as { report_type?: string; scope?: string; metrics?: string[] };
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-  // Create a notification with the report
+  let reportContent = `Scheduled ${config.report_type || 'general'} report has been generated.`;
+
+  // Generate actual AI-powered report
+  if (lovableApiKey) {
+    try {
+      // Gather org stats for the report
+      const [clientsRes, pipelineRes, emailsRes, commandsRes] = await Promise.all([
+        supabase.from('clients').select('id, name, status, mrr, risk_of_churn, health_score', { count: 'exact' }).eq('organization_id', task.organization_id),
+        supabase.from('action_pipeline').select('id, status, category, risk_level', { count: 'exact' }).eq('organization_id', task.organization_id),
+        supabase.from('emails').select('id, status', { count: 'exact' }).eq('organization_id', task.organization_id),
+        supabase.from('commands').select('id, status', { count: 'exact' }).eq('organization_id', task.organization_id),
+      ]);
+
+      const stats = {
+        total_clients: clientsRes.count || 0,
+        active_clients: clientsRes.data?.filter(c => c.status === 'active').length || 0,
+        total_mrr: clientsRes.data?.reduce((s, c) => s + (c.mrr || 0), 0) || 0,
+        high_risk_clients: clientsRes.data?.filter(c => c.risk_of_churn === 'high' || c.risk_of_churn === 'critical').length || 0,
+        avg_health: clientsRes.data?.length ? Math.round(clientsRes.data.reduce((s, c) => s + (c.health_score || 0), 0) / clientsRes.data.length) : 0,
+        pipeline_total: pipelineRes.count || 0,
+        pipeline_completed: pipelineRes.data?.filter(p => p.status === 'completed').length || 0,
+        pipeline_failed: pipelineRes.data?.filter(p => p.status === 'failed').length || 0,
+        emails_sent: emailsRes.data?.filter(e => e.status === 'sent').length || 0,
+        commands_total: commandsRes.count || 0,
+      };
+
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: `You are an executive analyst for a ${config.report_type || 'general'} report. Generate a concise, actionable executive summary with key metrics, trends, risks, and recommendations. Use bullet points and bold for emphasis. Keep it under 500 words.` },
+            { role: 'user', content: `Generate a ${config.report_type || 'general'} report.\nScope: ${config.scope || 'all'}\nMetrics focus: ${(config.metrics || []).join(', ') || 'all'}\n\nData: ${JSON.stringify(stats)}` },
+          ],
+          temperature: 0.4,
+        }),
+      });
+
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        reportContent = aiData.choices?.[0]?.message?.content || reportContent;
+      }
+    } catch (err) {
+      console.error('AI report generation error:', err);
+    }
+  }
+
+  // Create a notification with the actual report content
   await supabase.from('notifications').insert({
     organization_id: task.organization_id,
     user_id: task.created_by,
-    title: `Report ready: ${task.name}`,
-    body: `Scheduled ${config.report_type || 'general'} report has been generated.`,
+    title: `📊 Report: ${task.name}`,
+    body: reportContent.substring(0, 2000),
     category: 'system',
     priority: 'normal',
     source_type: 'scheduler',
     source_id: task.id,
     icon: '📊',
+    metadata: { report_type: config.report_type, full_report: reportContent },
   });
 
-  return { report_type: config.report_type, generated: true };
+  return { report_type: config.report_type, generated: true, ai_generated: !!lovableApiKey, report_length: reportContent.length };
 }
 
 // ─── Scheduling Logic ────────────────────────────────────────────────
