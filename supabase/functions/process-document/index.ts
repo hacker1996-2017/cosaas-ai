@@ -362,7 +362,7 @@ Note: Full text extraction unavailable for this file type. Provide metadata-base
           confidenceScore = 0.3;
         }
       } else {
-        intelligence = createFallbackIntelligence(fileName, fileType);
+        intelligence = createFallbackIntelligence(safeFileName, safeFileType);
         confidenceScore = 0.3;
       }
     }
