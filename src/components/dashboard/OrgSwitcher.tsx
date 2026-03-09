@@ -116,7 +116,7 @@ export function OrgSwitcher({ className }: { className?: string }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="flex items-center gap-2 cursor-pointer text-muted-foreground"
-          onClick={() => navigate('/organization-setup')}
+          onClick={() => navigate('/setup-organization')}
         >
           <Plus className="w-4 h-4" />
           <span>Create Organization</span>
